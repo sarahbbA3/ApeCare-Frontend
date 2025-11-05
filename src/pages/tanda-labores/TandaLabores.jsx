@@ -64,14 +64,7 @@ const TandaLabores = () => {
     }
   };
 
-  const formatearFecha = (d) => {
-    if (!d) return "-";
-    try {
-      return new Date(d).toLocaleDateString();
-    } catch {
-      return d;
-    }
-  };
+  const formatearFecha = (d) => d || "-";
 
   return (
     <Layout>
@@ -91,14 +84,15 @@ const TandaLabores = () => {
             <tr className="text-left">
               <th className="px-4 py-3 font-semibold text-slate-700">Nombre</th>
               <th className="px-4 py-3 font-semibold text-slate-700">Descripción</th>
-              <th className="px-4 py-3 font-semibold text-slate-700">Fecha</th>
+              <th className="px-4 py-3 font-semibold text-slate-700">Fecha de Creación</th>
+              <th className="px-4 py-3 font-semibold text-slate-700">Fecha de Actualización</th>
               <th className="px-4 py-3 font-semibold text-slate-700">Acciones</th>
             </tr>
           </thead>
           <tbody>
             {tandas.length === 0 ? (
               <tr>
-                <td colSpan="4" className="px-4 py-6 text-center text-slate-500">
+                <td colSpan="5" className="px-4 py-6 text-center text-slate-500">
                   No hay tandas registradas
                 </td>
               </tr>
@@ -108,6 +102,7 @@ const TandaLabores = () => {
                   <td className="px-4 py-3">{t.nombre}</td>
                   <td className="px-4 py-3">{t.descripcion}</td>
                   <td className="px-4 py-3">{formatearFecha(t.fechaCreacion)}</td>
+                  <td className="px-4 py-3">{formatearFecha(t.fechaActualizacion)}</td>
                   <td className="px-4 py-3">
                     <div className="flex gap-2">
                       <button

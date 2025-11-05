@@ -36,14 +36,7 @@ const Sintomas = () => {
     }
   };
 
-  const formatearFecha = (d) => {
-    if (!d) return "-";
-    try {
-      return new Date(d).toLocaleDateString();
-    } catch {
-      return d;
-    }
-  };
+  const formatearFecha = (d) => d || "-";
 
   const abrirModal = (sintoma = null) => {
     setEditandoSintomas(sintoma);
@@ -89,7 +82,6 @@ const Sintomas = () => {
   return (
     <Layout>
       <div className="bg-white/90 text-slate-700 rounded-xl p-6 shadow-lg backdrop-blur-md">
-        {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-slate-800">Lista de Síntomas</h2>
           <button
@@ -117,13 +109,14 @@ const Sintomas = () => {
                   <th className="px-4 py-3 font-semibold text-slate-700">Nombre</th>
                   <th className="px-4 py-3 font-semibold text-slate-700">Descripción</th>
                   <th className="px-4 py-3 font-semibold text-slate-700">Fecha de Creación</th>
+                  <th className="px-4 py-3 font-semibold text-slate-700">Fecha de Actualización</th>
                   <th className="px-4 py-3 font-semibold text-slate-700">Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 {listSintomas.length === 0 ? (
                   <tr>
-                    <td colSpan="4" className="px-4 py-6 text-center text-slate-500">
+                    <td colSpan="5" className="px-4 py-6 text-center text-slate-500">
                       No se encontraron síntomas disponibles
                     </td>
                   </tr>
@@ -136,6 +129,9 @@ const Sintomas = () => {
                       </td>
                       <td className="px-4 py-3 text-slate-600">
                         {formatearFecha(sint.fechaCreacion)}
+                      </td>
+                      <td className="px-4 py-3 text-slate-600">
+                        {formatearFecha(sint.fechaActualizacion)}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex gap-2">
@@ -161,7 +157,6 @@ const Sintomas = () => {
           </div>
         )}
 
-        {/* Modal para agregar/editar síntomas */}
         {isModalOpen && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-xl w-full max-w-md p-6">

@@ -36,15 +36,6 @@ const TipoFarmacos = () => {
     }
   };
 
-  const formatearFecha = (d) => {
-    if (!d) return "-";
-    try {
-      return new Date(d).toLocaleDateString();
-    } catch {
-      return d;
-    }
-  };
-
   const abrirModal = (tipo = null) => {
     setEditandoTipo(tipo);
     setNombre(tipo?.nombre || "");
@@ -120,13 +111,14 @@ const TipoFarmacos = () => {
                   <th className="px-4 py-3 font-semibold text-slate-700">Nombre</th>
                   <th className="px-4 py-3 font-semibold text-slate-700">Descripción</th>
                   <th className="px-4 py-3 font-semibold text-slate-700">Fecha de Creación</th>
+                  <th className="px-4 py-3 font-semibold text-slate-700">Fecha de Actualización</th>
                   <th className="px-4 py-3 font-semibold text-slate-700">Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 {listTipos.length === 0 ? (
                   <tr>
-                    <td colSpan="4" className="px-4 py-6 text-center text-slate-500">
+                    <td colSpan="5" className="px-4 py-6 text-center text-slate-500">
                       No se encontraron tipos de fármaco disponibles
                     </td>
                   </tr>
@@ -138,7 +130,10 @@ const TipoFarmacos = () => {
                         <div className="line-clamp-2">{tipo.descripcion}</div>
                       </td>
                       <td className="px-4 py-3 text-slate-600">
-                        {formatearFecha(tipo.fechaCreacion)}
+                        {tipo.fechaCreacion || "-"}
+                      </td>
+                      <td className="px-4 py-3 text-slate-600">
+                        {tipo.fechaActualizacion || "-"}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex gap-2">
@@ -164,7 +159,6 @@ const TipoFarmacos = () => {
           </div>
         )}
 
-        {/* Modal */}
         {isModalOpen && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-xl w-full max-w-md p-6">

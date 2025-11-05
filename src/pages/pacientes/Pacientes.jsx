@@ -1,117 +1,128 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from "react"
 import {
   obtenerPacientes,
   crearPaciente,
   editarPaciente,
   eliminarPaciente,
-} from "../../services/PacientesServices";
-import { obtenerTipoPacientes } from "../../services/TipoPacientesServices";
-import Layout from "../../components/common/Layout";
+} from "../../services/PacientesServices"
+import { obtenerTipoPacientes } from "../../services/TipoPacientesServices"
+import Layout from "../../components/common/Layout"
 
 const Pacientes = () => {
-  const [pacientes, setPacientes] = useState([]);
-  const [tiposPaciente, setTiposPaciente] = useState([]);
-  const [nombre, setNombre] = useState("");
-  const [cedula, setCedula] = useState("");
-  const [numeroCarnet, setNumeroCarnet] = useState("");
-  const [tipoPacienteId, setTipoPacienteId] = useState("");
-  const [editandoPaciente, setEditandoPaciente] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [error, setError] = useState(null);
-  const [cargando, setCargando] = useState(false);
+  const [pacientes, setPacientes] = useState([])
+  const [tiposPaciente, setTiposPaciente] = useState([])
+  const [formData, setFormData] = useState({
+    nombre: "",
+    cedula: "",
+    numeroCarnet: "",
+    tipoPacienteId: "",
+    edad: 0,
+  })
+  const [editandoPaciente, setEditandoPaciente] = useState(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [error, setError] = useState(null)
+  const [cargando, setCargando] = useState(false)
 
   useEffect(() => {
-    cargarPacientes();
-    cargarTiposPaciente();
-  }, []);
+    cargarPacientes()
+    cargarTiposPaciente()
+  }, [])
 
   const cargarPacientes = async () => {
-    setCargando(true);
-    setError(null);
+    setCargando(true)
+    setError(null)
     try {
-      const data = await obtenerPacientes();
-      setPacientes(data || []);
+      const data = await obtenerPacientes()
+      setPacientes(data || [])
     } catch (err) {
-      console.error("Error al cargar pacientes:", err);
-      setError("No se pudieron cargar los pacientes");
+      console.error("Error al cargar pacientes:", err)
+      setError("No se pudieron cargar los pacientes")
     } finally {
-      setCargando(false);
+      setCargando(false)
     }
-  };
+  }
 
   const cargarTiposPaciente = async () => {
     try {
-      const data = await obtenerTipoPacientes();
-      setTiposPaciente(data || []);
+      const data = await obtenerTipoPacientes()
+      setTiposPaciente(data || [])
     } catch (err) {
-      console.error("Error al cargar tipos de paciente:", err);
+      console.error("Error al cargar tipos de paciente:", err)
     }
-  };
+  }
 
   const abrirModal = (paciente = null) => {
-    setEditandoPaciente(paciente);
-    setNombre(paciente?.nombre || "");
-    setCedula(paciente?.cedula || "");
-    setNumeroCarnet(paciente?.numeroCarnet || "");
-    setTipoPacienteId(paciente?.tipoPacienteId || "");
-    setIsModalOpen(true);
-  };
+    setEditandoPaciente(paciente)
+    setFormData({
+      nombre: paciente?.nombre || "",
+      cedula: paciente?.cedula || "",
+      numeroCarnet: paciente?.numeroCarnet || "",
+      tipoPacienteId: paciente?.tipoPacienteId?.toString() || "",
+      edad: paciente?.edad || 0,
+    })
+    setIsModalOpen(true)
+  }
 
   const cerrarModal = () => {
-    setIsModalOpen(false);
-    setEditandoPaciente(null);
-    setNombre("");
-    setCedula("");
-    setNumeroCarnet("");
-    setTipoPacienteId("");
-  };
+    setIsModalOpen(false)
+    setEditandoPaciente(null)
+    setFormData({
+      nombre: "",
+      cedula: "",
+      numeroCarnet: "",
+      tipoPacienteId: "",
+      edad: 0,
+    })
+  }
 
-  const tipoSeleccionado = () =>
-    tiposPaciente.find((t) => t.id === parseInt(tipoPacienteId));
+  const tipoSeleccionado = tiposPaciente.find(
+    (t) => t.id === parseInt(formData.tipoPacienteId)
+  )
 
-  const guardarPaciente = async () => {
+  const guardarPaciente = async (e) => {
+    e.preventDefault()
+    if (formData.edad < 0) {
+      alert("La edad no puede ser negativa")
+      return
+    }
+
     const payload = {
-      nombre,
-      cedula,
+      nombre: formData.nombre,
+      cedula: formData.cedula,
       numeroCarnet:
-        tipoSeleccionado()?.nombre?.toLowerCase() === "estudiante"
-          ? numeroCarnet
+        tipoSeleccionado?.nombre?.toLowerCase() === "estudiante"
+          ? formData.numeroCarnet
           : null,
-      tipoPacienteId,
-    };
+      tipoPacienteId: formData.tipoPacienteId,
+      edad: formData.edad,
+    }
+
     try {
       if (editandoPaciente) {
-        await editarPaciente(editandoPaciente.id, payload);
+        await editarPaciente(editandoPaciente.id, payload)
       } else {
-        await crearPaciente(payload);
+        await crearPaciente(payload)
       }
-      cerrarModal();
-      cargarPacientes();
+      cerrarModal()
+      cargarPacientes()
     } catch (err) {
-      console.error("Error al guardar paciente:", err);
-      alert("Hubo un error al guardar");
+      console.error("Error al guardar paciente:", err)
+      alert("Hubo un error al guardar")
     }
-  };
+  }
 
   const eliminar = async (id) => {
-    if (!window.confirm("¿Eliminar este paciente?")) return;
+    if (!window.confirm("¿Eliminar este paciente?")) return
     try {
-      await eliminarPaciente(id);
-      cargarPacientes();
+      await eliminarPaciente(id)
+      cargarPacientes()
     } catch (err) {
-      console.error("Error al eliminar:", err);
-      alert("Hubo un error al eliminar");
+      console.error("Error al eliminar:", err)
+      alert("Hubo un error al eliminar")
     }
-  };
+  }
 
-  const formatearFecha = (d) => {
-    if (!d) return "-";
-    try {
-      return new Date(d).toLocaleDateString();
-    } catch {
-      return d;
-    }
-  };
+  const formatearFecha = (d) => d || "-"
 
   return (
     <Layout>
@@ -139,14 +150,16 @@ const Pacientes = () => {
                 <th className="px-4 py-3 font-semibold text-slate-700">Nombre</th>
                 <th className="px-4 py-3 font-semibold text-slate-700">Cédula</th>
                 <th className="px-4 py-3 font-semibold text-slate-700">Carnet</th>
-                <th className="px-4 py-3 font-semibold text-slate-700">Fecha</th>
+                <th className="px-4 py-3 font-semibold text-slate-700">Edad</th>
+                <th className="px-4 py-3 font-semibold text-slate-700">Fecha de Registro</th>
+                <th className="px-4 py-3 font-semibold text-slate-700">Fecha de Actualizacion</th>
                 <th className="px-4 py-3 font-semibold text-slate-700">Acciones</th>
               </tr>
             </thead>
             <tbody>
               {pacientes.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="px-4 py-6 text-center text-slate-500">
+                  <td colSpan="7" className="px-4 py-6 text-center text-slate-500">
                     No hay pacientes registrados
                   </td>
                 </tr>
@@ -156,9 +169,9 @@ const Pacientes = () => {
                     <td className="px-4 py-3">{p.nombre}</td>
                     <td className="px-4 py-3">{p.cedula}</td>
                     <td className="px-4 py-3">{p.numeroCarnet || "-"}</td>
-                    <td className="px-4 py-3 text-slate-600">
-                      {formatearFecha(p.fechaRegistro)}
-                    </td>
+                    <td className="px-4 py-3">{p.edad}</td>
+                    <td className="px-4 py-3 text-slate-600">{formatearFecha(p.fechaRegistro)}</td>
+                    <td className="px-4 py-3 text-slate-600">{formatearFecha(p.fechaActualizacion)}</td>
                     <td className="px-4 py-3">
                       <div className="flex gap-2">
                         <button
@@ -182,72 +195,108 @@ const Pacientes = () => {
           </table>
         )}
 
-        {/* Modal */}
         {isModalOpen && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl w-full max-w-md p-6">
-              <h3 className="text-xl font-semibold mb-4">
-                {editandoPaciente ? "Editar Paciente" : "Agregar Paciente"}
-              </h3>
+            <div className="bg-white rounded-xl w-full max-w-xl p-6 shadow-xl overflow-y-auto max-h-[90vh]">
+              <h2 className="text-2xl font-bold mb-2">
+                {editandoPaciente ? "Editar Paciente" : "Nuevo Paciente"}
+              </h2>
+              <p className="text-slate-600 mb-6">
+                {editandoPaciente
+                  ? "Modifica la información del paciente"
+                  : "Agrega un nuevo paciente al sistema"}
+              </p>
 
-              <div className="space-y-4">
-                <input
-                  type="text"
-                  value={nombre}
-                  onChange={(e) => setNombre(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg"
-                  placeholder="Nombre completo"
-                />
-                <input
-                  type="text"
-                  value={cedula}
-                  onChange={(e) => setCedula(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg"
-                  placeholder="Cédula"
-                />
-                <select
-                  value={tipoPacienteId}
-                  onChange={(e) => setTipoPacienteId(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg"
-                >
-                  <option value="">Selecciona tipo de paciente</option>
-                  {tiposPaciente.map((tipo) => (
-                    <option key={tipo.id} value={tipo.id}>
-                      {tipo.nombre}
-                    </option>
-                  ))}
-                </select>
-                {tipoSeleccionado()?.nombre?.toLowerCase() === "estudiante" && (
+              <form onSubmit={guardarPaciente} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Nombre</label>
                   <input
                     type="text"
-                    value={numeroCarnet}
-                    onChange={(e) => setNumeroCarnet(e.target.value)}
+                    value={formData.nombre}
+                    onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg"
-                    placeholder="Número de carnet"
+                    required
                   />
-                )}
-              </div>
+                </div>
 
-              <div className="flex gap-3 mt-6">
-                <button
-                  onClick={cerrarModal}
-                  className="flex-1 px-4 py-2 bg-slate-500 hover:bg-slate-600 text-white rounded-lg transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={guardarPaciente}
-                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-                >
-                  {editandoPaciente ? "Actualizar" : "Guardar"}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    </Layout>
-  );
-};
+                <div className="grid grid-cols-2 gap-4">
+  <div>
+    <label className="block text-sm font-medium text-slate-700 mb-1">Cédula</label>
+    <input
+      type="text"
+      value={formData.cedula}
+      onChange={(e) => setFormData({ ...formData, cedula: e.target.value })}
+      className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+      required
+    />
+  </div>
+  <div>
+    <label className="block text-sm font-medium text-slate-700 mb-1">Edad</label>
+    <input
+      type="number"
+      min={0}
+      value={formData.edad}
+      onChange={(e) =>
+        setFormData({ ...formData, edad: Math.max(0, Number(e.target.value)) })
+      }
+      className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+      required
+    />
+  </div>
+</div>
 
-export default Pacientes;
+<div>
+  <label className="block text-sm font-medium text-slate-700 mb-1">Tipo de Paciente</label>
+  <select
+    value={formData.tipoPacienteId}
+    onChange={(e) => setFormData({ ...formData, tipoPacienteId: e.target.value })}
+    className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+    required
+  >
+    <option value="">Seleccionar tipo</option>
+    {tiposPaciente.map((tipo) => (
+      <option key={tipo.id} value={tipo.id}>
+        {tipo.nombre}
+      </option>
+    ))}
+  </select>
+</div>
+
+{tipoSeleccionado?.nombre?.toLowerCase() === "estudiante" && (
+  <div>
+    <label className="block text-sm font-medium text-slate-700 mb-1">Número de Carnet</label>
+    <input
+      type="text"
+      value={formData.numeroCarnet}
+      onChange={(e) => setFormData({ ...formData, numeroCarnet: e.target.value })}
+      className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+      required
+    />
+  </div>
+)}
+
+<div className="flex justify-end gap-3 pt-4">
+  <button
+    type="button"
+    onClick={cerrarModal}
+    className="px-4 py-2 bg-slate-500 hover:bg-slate-600 text-white rounded-lg"
+  >
+    Cancelar
+  </button>
+  <button
+    type="submit"
+    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+  >
+    {editandoPaciente ? "Actualizar" : "Guardar"}
+  </button>
+</div>
+</form>
+</div>
+</div>
+)}
+</div>
+</Layout>
+)
+}
+
+export default Pacientes
