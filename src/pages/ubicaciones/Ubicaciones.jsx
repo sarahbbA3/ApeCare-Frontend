@@ -37,14 +37,7 @@ const Ubicaciones = () => {
     }
   };
 
-  const formatearFecha = (d) => {
-    if (!d) return "-";
-    try {
-      return new Date(d).toLocaleDateString();
-    } catch {
-      return d;
-    }
-  };
+  const formatearFecha = (d) => d || "-";
 
   const abrirModal = (ubicacion = null) => {
     setEditandoUbicacion(ubicacion);
@@ -125,13 +118,14 @@ const Ubicaciones = () => {
                   <th className="px-4 py-3 font-semibold text-slate-700">Tramo</th>
                   <th className="px-4 py-3 font-semibold text-slate-700">Celda</th>
                   <th className="px-4 py-3 font-semibold text-slate-700">Fecha de Creación</th>
+                  <th className="px-4 py-3 font-semibold text-slate-700">Fecha de Actualización</th>
                   <th className="px-4 py-3 font-semibold text-slate-700">Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 {listUbicaciones.length === 0 ? (
                   <tr>
-                    <td colSpan="5" className="px-4 py-6 text-center text-slate-500">
+                    <td colSpan="6" className="px-4 py-6 text-center text-slate-500">
                       No se encontraron ubicaciones disponibles
                     </td>
                   </tr>
@@ -143,6 +137,9 @@ const Ubicaciones = () => {
                       <td className="px-4 py-3">{ubic.celda}</td>
                       <td className="px-4 py-3 text-slate-600">
                         {formatearFecha(ubic.fechaCreacion)}
+                      </td>
+                      <td className="px-4 py-3 text-slate-600">
+                        {formatearFecha(ubic.fechaActualizacion)}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex gap-2">
@@ -168,7 +165,6 @@ const Ubicaciones = () => {
           </div>
         )}
 
-        {/* Modal */}
         {isModalOpen && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-xl w-full max-w-md p-6">
@@ -217,21 +213,20 @@ const Ubicaciones = () => {
                   className="flex-1 px-4 py-2 bg-slate-500 hover:bg-slate-600 text-white rounded-lg transition-colors"
                 >
                   Cancelar
-                </button>
-                <button
-                  onClick={guardarUbicacion}
-                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-                >
-                    {editandoUbicacion ? "Actualizar" : "Guardar"}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    </Layout>
-  );
+</button>
+<button
+  onClick={guardarUbicacion}
+  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+>
+  {editandoUbicacion ? "Actualizar" : "Guardar"}
+</button>
+</div>
+</div>
+</div>
+)}
+</div>
+</Layout>
+);
 };
 
 export default Ubicaciones;
-      

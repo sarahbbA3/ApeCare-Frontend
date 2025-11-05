@@ -1,85 +1,99 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from "react"
 import {
   obtenerMedicos,
   crearMedico,
   editarMedico,
   eliminarMedico,
-} from "../../services/MedicosServices";
-import { obtenerEspecialidades } from "../../services/EspecialidadesServices";
-import { obtenerTandas } from "../../services/TandaLaboresServices";
-import Layout from "../../components/common/Layout";
+} from "../../services/MedicosServices"
+import { obtenerEspecialidades } from "../../services/EspecialidadesServices"
+import { obtenerTandas } from "../../services/TandaLaboresServices"
+import Layout from "../../components/common/Layout"
 
 const Medicos = () => {
-  const [medicos, setMedicos] = useState([]);
-  const [especialidades, setEspecialidades] = useState([]);
-  const [tandas, setTandas] = useState([]);
+  const [medicos, setMedicos] = useState([])
+  const [especialidades, setEspecialidades] = useState([])
+  const [tandas, setTandas] = useState([])
 
-  const [nombre, setNombre] = useState("");
-  const [cedula, setCedula] = useState("");
-  const [especialidadId, setEspecialidadId] = useState("");
-  const [tandaLaborId, setTandaLaborId] = useState("");
-  const [editando, setEditando] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    nombre: "",
+    cedula: "",
+    especialidadId: "",
+    tandaLaborId: "",
+  })
+
+  const [editando, setEditando] = useState(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
   useEffect(() => {
-    cargarDatos();
-  }, []);
+    cargarDatos()
+  }, [])
 
   const cargarDatos = async () => {
     const [m, e, t] = await Promise.all([
       obtenerMedicos(),
       obtenerEspecialidades(),
       obtenerTandas(),
-    ]);
-    setMedicos(m || []);
-    setEspecialidades(e || []);
-    setTandas(t || []);
-  };
+    ])
+    setMedicos(m || [])
+    setEspecialidades(e || [])
+    setTandas(t || [])
+  }
 
   const abrirModal = (medico = null) => {
-    setEditando(medico);
-    setNombre(medico?.nombre || "");
-    setCedula(medico?.cedula || "");
-    setEspecialidadId(medico?.especialidadId || "");
-    setTandaLaborId(medico?.tandaLaborId || "");
-    setIsModalOpen(true);
-  };
+    setEditando(medico)
+    setFormData({
+      nombre: medico?.nombre || "",
+      cedula: medico?.cedula || "",
+      especialidadId: medico?.especialidadId || "",
+      tandaLaborId: medico?.tandaLaborId || "",
+    })
+    setIsModalOpen(true)
+  }
 
   const cerrarModal = () => {
-    setIsModalOpen(false);
-    setEditando(null);
-    setNombre("");
-    setCedula("");
-    setEspecialidadId("");
-    setTandaLaborId("");
-  };
+    setIsModalOpen(false)
+    setEditando(null)
+    setFormData({
+      nombre: "",
+      cedula: "",
+      especialidadId: "",
+      tandaLaborId: "",
+    })
+  }
 
   const guardarMedico = async () => {
-    const payload = { nombre, cedula, especialidadId, tandaLaborId };
     try {
       if (editando) {
-        await editarMedico(editando.id, payload);
+        await editarMedico(editando.id, formData)
       } else {
-        await crearMedico(payload);
+        await crearMedico(formData)
       }
-      cerrarModal();
-      cargarDatos();
+      cerrarModal()
+      cargarDatos()
     } catch (err) {
-      console.error("Error al guardar médico:", err);
-      alert("Hubo un error al guardar");
+      console.error("Error al guardar médico:", err)
+      alert("Hubo un error al guardar")
     }
-  };
+  }
 
   const eliminar = async (id) => {
-    if (!window.confirm("¿Eliminar este médico?")) return;
+    if (!window.confirm("¿Eliminar este médico?")) return
     try {
-      await eliminarMedico(id);
-      cargarDatos();
+      await eliminarMedico(id)
+      cargarDatos()
     } catch (err) {
-      console.error("Error al eliminar:", err);
-      alert("Hubo un error al eliminar");
+      console.error("Error al eliminar:", err)
+      alert("Hubo un error al eliminar")
     }
-  };
+  }
+
+  const formatearFecha = (d) => d || "-";
+
+  const obtenerNombreEspecialidad = (id) =>
+    especialidades.find((e) => e.id === id)?.nombre || "-"
+
+  const obtenerNombreTanda = (id) =>
+    tandas.find((t) => t.id === id)?.nombre || "-"
 
   return (
     <Layout>
@@ -101,6 +115,8 @@ const Medicos = () => {
               <th className="px-4 py-3 font-semibold text-slate-700">Cédula</th>
               <th className="px-4 py-3 font-semibold text-slate-700">Especialidad</th>
               <th className="px-4 py-3 font-semibold text-slate-700">Tanda</th>
+              <th className="px-4 py-3 font-semibold text-slate-700">Fecha de Creación</th>
+              <th className="px-4 py-3 font-semibold text-slate-700">Fecha de Actualización</th>
               <th className="px-4 py-3 font-semibold text-slate-700">Acciones</th>
             </tr>
           </thead>
@@ -116,8 +132,10 @@ const Medicos = () => {
                 <tr key={m.id} className="border-t border-slate-200 hover:bg-slate-50">
                   <td className="px-4 py-3">{m.nombre}</td>
                   <td className="px-4 py-3">{m.cedula}</td>
-                  <td className="px-4 py-3">{m.especialidadId}</td>
-                  <td className="px-4 py-3">{m.tandaLaborId}</td>
+                  <td className="px-4 py-3">{obtenerNombreEspecialidad(m.especialidadId)}</td>
+                  <td className="px-4 py-3">{obtenerNombreTanda(m.tandaLaborId)}</td>
+                  <td className="px-4 py-3">{formatearFecha(m.fechaCreacion)}</td>
+                  <td className="px-4 py-3">{formatearFecha(m.fechaActualizacion)}</td>
                   <td className="px-4 py-3">
                     <div className="flex gap-2">
                       <button
@@ -141,73 +159,123 @@ const Medicos = () => {
         </table>
 
         {isModalOpen && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl w-full max-w-md p-6">
-              <h3 className="text-xl font-semibold mb-4">
-                {editando ? "Editar Médico" : "Agregar Médico"}
-              </h3>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-xl p-6 relative">
+              <button
+                onClick={cerrarModal}
+                className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+              >
+                ✕
+              </button>
 
-              <div className="space-y-4">
-                <input
-                  type="text"
-                  value={nombre}
-                  onChange={(e) => setNombre(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg"
-                  placeholder="Nombre"
-                />
-                <input
-                  type="text"
-                  value={cedula}
-                  onChange={(e) => setCedula(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg"
-                  placeholder="Cédula"
-                />
-                <select
-                  value={especialidadId}
-                  onChange={(e) => setEspecialidadId(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg"
-                >
-                  <option value="">Selecciona especialidad</option>
-                  {especialidades.map((e) => (
-                    <option key={e.id} value={e.id}>
-                      {e.nombre}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  value={tandaLaborId}
-                  onChange={(e) => setTandaLaborId(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg"
-                >
-                  <option value="">Selecciona tanda laboral</option>
-                  {tandas.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.nombre}
-                    </option>
-                  ))}
-                </select>
+              <h2 className="text-xl font-bold text-gray-800 mb-1">
+                {editando ? "Editar Médico" : "Nuevo Médico"}
+              </h2>
+              <p className="text-sm text-gray-500 mb-4">
+                {editando
+                  ? "Modifica la información del médico"
+                  : "Agrega un nuevo médico al sistema"}
+              </p>
 
-                <div className="flex gap-3 mt-6">
-                  <button
-                    onClick={cerrarModal}
-                    className="flex-1 px-4 py-2 bg-slate-500 hover:bg-slate-600 text-white rounded-lg transition-colors"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    onClick={guardarMedico}
-                    className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-                  >
-                    {editando ? "Actualizar" : "Guardar"}
-                  </button>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  guardarMedico()
+                }}
+                className="grid gap-6"
+              >
+                <div className="grid gap-2">
+                  <label htmlFor="nombre" className="text-sm font-medium text-gray-700">
+                    Nombre Completo
+                  </label>
+                  <input
+                    id="nombre"
+                    value={formData.nombre}
+                    onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                    placeholder="Dr. Roberto Fernández"
+                    required
+                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  />
                 </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    </Layout>
-  );
-};
 
-export default Medicos;
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <label htmlFor="especialidadId" className="text-sm font-medium text-gray-700">
+                      Especialidad
+                    </label>
+                    <select
+                      id="especialidadId"
+                      value={formData.especialidadId}
+                      onChange={(e) => setFormData({ ...formData, especialidadId: e.target.value })}
+                      required
+                      className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                    >
+                      <option value="">Seleccionar especialidad</option>
+                      {especialidades.map((e) => (
+                        <option key={e.id} value={e.id}>
+                          {e.nombre}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="grid gap-2">
+                    <label htmlFor="cedula" className="text-sm font-medium text-gray-700">
+                      Cédula
+                    </label>
+                    <input
+                      id="cedula"
+                      value={formData.cedula}
+                      onChange={(e) => setFormData({ ...formData, cedula: e.target.value })}
+                      placeholder="001-1234567-8"
+                      required
+                      className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-2">
+                  <label htmlFor="tandaLaborId" className="text-sm font-medium text-gray-700">
+                      Tanda Laboral
+</label>
+<select
+  id="tandaLaborId"
+  value={formData.tandaLaborId}
+  onChange={(e) => setFormData({ ...formData, tandaLaborId: e.target.value })}
+  required
+  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+>
+  <option value="">Seleccionar tanda</option>
+  {tandas.map((t) => (
+    <option key={t.id} value={t.id}>
+      {t.nombre}
+    </option>
+  ))}
+</select>
+</div>
+
+<div className="flex justify-end gap-3 pt-4">
+  <button
+    type="button"
+    onClick={cerrarModal}
+    className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100"
+  >
+    Cancelar
+  </button>
+  <button
+    type="submit"
+    className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700"
+  >
+    {editando ? "Actualizar" : "Guardar"}
+  </button>
+</div>
+</form>
+</div>
+</div>
+)}
+</div>
+</Layout>
+)
+}
+
+export default Medicos
