@@ -7,18 +7,22 @@ import {
 } from "../../services/MedicosServices"
 import { obtenerEspecialidades } from "../../services/EspecialidadesServices"
 import { obtenerTandas } from "../../services/TandaLaboresServices"
+import { obtenerUsuarios } from "../../services/UsuariosServices"
 import Layout from "../../components/common/Layout"
 
 const Medicos = () => {
   const [medicos, setMedicos] = useState([])
   const [especialidades, setEspecialidades] = useState([])
   const [tandas, setTandas] = useState([])
+  const [usuarios, setUsuarios] = useState([])
+  const [usuariosDisponibles, setUsuariosDisponibles] = useState([])
 
   const [formData, setFormData] = useState({
     nombre: "",
     cedula: "",
     especialidadId: "",
     tandaLaborId: "",
+    usuarioId: "",
   })
 
   const [editando, setEditando] = useState(null)
@@ -28,27 +32,44 @@ const Medicos = () => {
     cargarDatos()
   }, [])
 
-  const cargarDatos = async () => {
-    const [m, e, t] = await Promise.all([
-      obtenerMedicos(),
-      obtenerEspecialidades(),
-      obtenerTandas(),
-    ])
-    setMedicos(m || [])
-    setEspecialidades(e || [])
-    setTandas(t || [])
+  const cargarDatos = async (medicoEnEdicion = null) => {
+  const [m, e, t, u] = await Promise.all([
+    obtenerMedicos(),
+    obtenerEspecialidades(),
+    obtenerTandas(),
+    obtenerUsuarios(),
+  ])
+  setMedicos(m || [])
+  setEspecialidades(e || [])
+  setTandas(t || [])
+  setUsuarios(u || [])
+
+  const usados = m.map((medico) => medico.usuarioId)
+  let disponibles = u.filter((usuario) => !usados.includes(usuario.id))
+
+  // ✅ incluir el usuario actual si estamos editando
+  if (medicoEnEdicion?.usuarioId) {
+    const usuarioActual = u.find((u) => u.id === medicoEnEdicion.usuarioId)
+    if (usuarioActual && !disponibles.some((d) => d.id === usuarioActual.id)) {
+      disponibles = [usuarioActual, ...disponibles]
+    }
   }
 
+  setUsuariosDisponibles(disponibles || [])
+}
+
   const abrirModal = (medico = null) => {
-    setEditando(medico)
-    setFormData({
-      nombre: medico?.nombre || "",
-      cedula: medico?.cedula || "",
-      especialidadId: medico?.especialidadId || "",
-      tandaLaborId: medico?.tandaLaborId || "",
-    })
-    setIsModalOpen(true)
-  }
+  setEditando(medico)
+  setFormData({
+    nombre: medico?.nombre || "",
+    cedula: medico?.cedula || "",
+    especialidadId: medico?.especialidadId || "",
+    tandaLaborId: medico?.tandaLaborId || "",
+    usuarioId: medico?.usuarioId || "",
+  })
+  setIsModalOpen(true)
+  cargarDatos(medico) // ✅ pasa el médico directamente
+}
 
   const cerrarModal = () => {
     setIsModalOpen(false)
@@ -58,6 +79,7 @@ const Medicos = () => {
       cedula: "",
       especialidadId: "",
       tandaLaborId: "",
+      usuarioId: "",
     })
   }
 
@@ -87,7 +109,7 @@ const Medicos = () => {
     }
   }
 
-  const formatearFecha = (d) => d || "-";
+  const formatearFecha = (d) => d || "-"
 
   const obtenerNombreEspecialidad = (id) =>
     especialidades.find((e) => e.id === id)?.nombre || "-"
@@ -123,7 +145,7 @@ const Medicos = () => {
           <tbody>
             {medicos.length === 0 ? (
               <tr>
-                <td colSpan="5" className="px-4 py-6 text-center text-slate-500">
+                <td colSpan="7" className="px-4 py-6 text-center text-slate-500">
                   No hay médicos registrados
                 </td>
               </tr>
@@ -208,51 +230,72 @@ const Medicos = () => {
                       value={formData.especialidadId}
                       onChange={(e) => setFormData({ ...formData, especialidadId: e.target.value })}
                       required
-                      className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                    >
-                      <option value="">Seleccionar especialidad</option>
-                      {especialidades.map((e) => (
-                        <option key={e.id} value={e.id}>
-                          {e.nombre}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="grid gap-2">
-                    <label htmlFor="cedula" className="text-sm font-medium text-gray-700">
-                      Cédula
-                    </label>
-                    <input
-                      id="cedula"
-                      value={formData.cedula}
-                      onChange={(e) => setFormData({ ...formData, cedula: e.target.value })}
-                      placeholder="001-1234567-8"
-                      required
-                      className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid gap-2">
-                  <label htmlFor="tandaLaborId" className="text-sm font-medium text-gray-700">
-                      Tanda Laboral
-</label>
-<select
-  id="tandaLaborId"
-  value={formData.tandaLaborId}
-  onChange={(e) => setFormData({ ...formData, tandaLaborId: e.target.value })}
-  required
-  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
 >
-  <option value="">Seleccionar tanda</option>
-  {tandas.map((t) => (
-    <option key={t.id} value={t.id}>
-      {t.nombre}
+  <option value="">Seleccionar especialidad</option>
+  {especialidades.map((e) => (
+    <option key={e.id} value={e.id}>
+      {e.nombre}
     </option>
   ))}
 </select>
 </div>
+
+<div className="grid gap-2">
+  <label htmlFor="cedula" className="text-sm font-medium text-gray-700">
+    Cédula
+  </label>
+  <input
+    id="cedula"
+    value={formData.cedula}
+    onChange={(e) => setFormData({ ...formData, cedula: e.target.value })}
+    placeholder="001-1234567-8"
+    required
+    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+  />
+</div>
+
+<div className="grid gap-2">
+  <label htmlFor="tandaLaborId" className="text-sm font-medium text-gray-700">
+    Tanda Laboral
+  </label>
+  <select
+    id="tandaLaborId"
+    value={formData.tandaLaborId}
+    onChange={(e) => setFormData({ ...formData, tandaLaborId: e.target.value })}
+    required
+    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+  >
+    <option value="">Seleccionar tanda</option>
+    {tandas.map((t) => (
+      <option key={t.id} value={t.id}>
+        {t.nombre}
+      </option>
+    ))}
+  </select>
+</div>
+
+<div className="grid gap-2">
+  <label htmlFor="usuarioId" className="text-sm font-medium text-gray-700">
+    Usuario vinculado
+  </label>
+  <select
+    id="usuarioId"
+    value={formData.usuarioId}
+    onChange={(e) => setFormData({ ...formData, usuarioId: e.target.value })}
+    required
+    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+  >
+    <option value="">Seleccionar usuario</option>
+    {usuariosDisponibles.map((u) => (
+      <option key={u.id} value={u.id}>
+        {u.nombre} ({u.correo})
+      </option>
+    ))}
+  </select>
+</div>
+
+</div> {}
 
 <div className="flex justify-end gap-3 pt-4">
   <button
@@ -275,7 +318,7 @@ const Medicos = () => {
 )}
 </div>
 </Layout>
-)
+  )
 }
 
 export default Medicos
