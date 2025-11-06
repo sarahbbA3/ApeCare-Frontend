@@ -157,6 +157,14 @@ const RegistroVisitas = () => {
       .join(", ")
   }
 
+  const horaMaxima = useMemo(() => {
+    const hoy = new Date().toISOString().split("T")[0]
+    if (formData.fechaVisita === hoy) {
+      return new Date().toTimeString().slice(0, 5) // formato HH:mm
+    }
+    return undefined
+  }, [formData.fechaVisita])
+
   const visitasFiltradas = useMemo(() => {
     return visitas.filter((v) => {
       const matchesSearch =
@@ -344,6 +352,7 @@ const RegistroVisitas = () => {
                       type="date"
                       value={formData.fechaVisita}
                       onChange={(e) => setFormData({ ...formData, fechaVisita: e.target.value })}
+                      max={new Date().toISOString().split("T")[0]} // bloqueo fechas
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg"
                       required
                     />
@@ -354,6 +363,7 @@ const RegistroVisitas = () => {
                       type="time"
                       value={formData.horaVisita}
                       onChange={(e) => setFormData({ ...formData, horaVisita: e.target.value })}
+                      max={horaMaxima} // bloquea horas futuras (solo si la fecha es hoy)
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg"
                       required
                     />

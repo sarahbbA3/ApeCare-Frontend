@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { Link, useLocation } from "react-router-dom"
+import { useAuth } from "../../hooks/useAuth"
 import {
   Pill,
   Tag,
@@ -18,6 +19,9 @@ import {
   ClipboardList,
   ChevronDown,
   Users,
+  UserStar,
+  UserPen,
+  LogOut,
 } from "lucide-react"
 
 const navItems = [
@@ -37,6 +41,8 @@ const navItems = [
       { href: "/especialidad", label: "Especialidades", icon: Briefcase },
       { href: "/medico", label: "Médicos", icon: Stethoscope },
       { href: "/registro-visita", label: "Registro de Visitas", icon: ClipboardList },
+      { href: "/rol", label: "Roles", icon: UserStar },
+      { href: "/usuario", label: "Usuarios", icon: UserPen },
     ],
   },
 ]
@@ -45,6 +51,19 @@ export function Navigation() {
   const location = useLocation()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [submenuOpen, setSubmenuOpen] = useState(false)
+  const { usuario, logout } = useAuth()
+  const esMedico = usuario?.rol === "MEDICO"
+
+  // ✅ Filtrar submenu si es médico
+  const filteredNavItems = navItems.map((item) => {
+    if (item.submenu && esMedico) {
+      const submenuFiltrado = item.submenu.filter(
+        (sub) => sub.href !== "/rol" && sub.href !== "/usuario"
+      )
+      return { ...item, submenu: submenuFiltrado }
+    }
+    return item
+  })
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-gray-200 bg-white/90 backdrop-blur-md shadow-sm">
@@ -60,13 +79,12 @@ export function Navigation() {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex md:items-center md:gap-1">
-            {navItems.map((item) => {
+            {filteredNavItems.map((item) => {
               const Icon = item.icon
               const isActive =
                 location.pathname === item.href ||
                 (item.submenu && item.submenu.some((sub) => location.pathname === sub.href))
 
-              // Elemento con submenu Gestión Clínica
               if (item.submenu) {
                 return (
                   <div
@@ -117,7 +135,6 @@ export function Navigation() {
                 )
               }
 
-              // Elementos normales
               return (
                 <Link
                   key={item.href}
@@ -133,6 +150,16 @@ export function Navigation() {
                 </Link>
               )
             })}
+
+            {/* 🔒 Botón Cerrar sesión (desktop) */}
+            <button
+              type="button"
+              onClick={logout}
+              className="ml-2 flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors"
+            >
+              <LogOut className="h-4 w-4" />
+              Cerrar sesión
+            </button>
           </div>
 
           {/* Mobile Menu Button */}
@@ -148,7 +175,7 @@ export function Navigation() {
         {mobileMenuOpen && (
           <div className="border-t border-gray-200 py-4 md:hidden">
             <div className="flex flex-col gap-2">
-              {navItems.map((item) => {
+              {filteredNavItems.map((item) => {
                 const Icon = item.icon
                 const isActive =
                   location.pathname === item.href ||
@@ -196,17 +223,27 @@ export function Navigation() {
                       isActive
                         ? "bg-blue-600 text-white shadow-sm"
                         : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"
-                    }`}
-                  >
-                    <Icon className="h-4 w-4" />
-                    {item.label}
-                  </Link>
-                )
-              })}
-            </div>
+                                      }`}
+                >
+                  <Icon className="h-4 w-4" />
+                  {item.label}
+                </Link>
+              )
+            })}
+
+            {/* 🔒 Botón Cerrar sesión (mobile) */}
+            <button
+              type="button"
+              onClick={logout}
+              className="mt-2 flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors"
+            >
+              <LogOut className="h-4 w-4" />
+              Cerrar sesión
+            </button>
           </div>
-        )}
-      </div>
-    </nav>
-  )
+        </div>
+      )}
+    </div>
+  </nav>
+)
 }
