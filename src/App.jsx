@@ -15,6 +15,9 @@ import Medicos from "./pages/medicos/Medicos"
 import RegistroVisitas from "./pages/registro-visitas/RegistroVisitas"
 import Roles from "./pages/roles/Roles"
 import Usuarios from "./pages/usuarios/Usuarios"
+import Tramos from "./pages/tramos/Tramos"
+import Estantes from "./pages/estantes/Estantes"
+import Celdas from "./pages/celdas/Celdas"
 
 function App() {
   const { isAuthenticated, loading } = useAuth() 
@@ -39,6 +42,9 @@ function App() {
         <Route path="/registro-visita" element={isAuthenticated ? <RegistroVisitas /> : <Navigate to="/login" />} />
         <Route path="/rol" element={isAuthenticated ? <Roles /> : <Navigate to="/login" />} />
         <Route path="/usuario" element={isAuthenticated ? <Usuarios /> : <Navigate to="/login" />} />
+        <Route path="/tramo" element={isAuthenticated ? <Tramos /> : <Navigate to="/login" />} />
+        <Route path="/estante" element={isAuthenticated ? <Estantes /> : <Navigate to="/login" />} />  
+        <Route path="/celda" element={isAuthenticated ? <Celdas /> : <Navigate to="/login" />} />              
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Router>
