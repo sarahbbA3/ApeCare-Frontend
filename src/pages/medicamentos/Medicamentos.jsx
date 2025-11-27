@@ -159,6 +159,9 @@ const Medicamentos = () => {
                   <th className="px-4 py-3 font-semibold text-slate-700">Descripción</th>
                   <th className="px-4 py-3 font-semibold text-slate-700">Dosis</th>
                   <th className="px-4 py-3 font-semibold text-slate-700">Cantidad</th>
+                  <th className="px-4 py-3 font-semibold text-slate-700">Tipo de Fármaco</th>
+                  <th className="px-4 py-3 font-semibold text-slate-700">Ubicación</th>
+                  <th className="px-4 py-3 font-semibold text-slate-700">Marca</th>
                   <th className="px-4 py-3 font-semibold text-slate-700">Fecha de Vencimiento</th>
                   <th className="px-4 py-3 font-semibold text-slate-700">Fecha de Creación</th>
                   <th className="px-4 py-3 font-semibold text-slate-700">Fecha de Actualización</th>
@@ -168,7 +171,7 @@ const Medicamentos = () => {
               <tbody>
                 {listMedicamentos.length === 0 ? (
                   <tr>
-                    <td colSpan="7" className="px-4 py-6 text-center text-slate-500">
+                    <td colSpan="10" className="px-4 py-6 text-center text-slate-500">
                       No se encontraron medicamentos disponibles
                     </td>
                   </tr>
@@ -178,15 +181,14 @@ const Medicamentos = () => {
                       <td className="px-4 py-3">{med.descripcion}</td>
                       <td className="px-4 py-3">{med.dosis}</td>
                       <td className="px-4 py-3">{med.cantidadDisponible}</td>
-                      <td className="px-4 py-3 text-slate-600">
-                        {formatearFecha(med.fechaVencimiento)}
+                      <td className="px-4 py-3">{med.tipoFarmacoNombre}</td>
+                      <td className="px-4 py-3">
+                        {`${med.estanteNombre} → ${med.tramoNombre} → ${med.celdaNombre}`}
                       </td>
-                      <td className="px-4 py-3 text-slate-600">
-                        {formatearFecha(med.fechaCreacion)}
-                      </td>
-                      <td className="px-4 py-3 text-slate-600">
-                        {formatearFecha(med.fechaActualizacion)}
-                      </td>
+                      <td className="px-4 py-3">{med.marcaNombre}</td>
+                      <td className="px-4 py-3 text-slate-600">{formatearFecha(med.fechaVencimiento)}</td>
+                      <td className="px-4 py-3 text-slate-600">{formatearFecha(med.fechaCreacion)}</td>
+                      <td className="px-4 py-3 text-slate-600">{formatearFecha(med.fechaActualizacion)}</td>
                       <td className="px-4 py-3">
                         <div className="flex gap-2">
                           <button
@@ -216,16 +218,24 @@ const Medicamentos = () => {
             <div className="bg-white rounded-xl w-full max-w-xl p-6 shadow-xl overflow-y-auto max-h-[90vh]">
               <h2 className="text-2xl font-bold mb-2">
                 {editandoMedicamento ? "Editar Medicamento" : "Nuevo Medicamento"}
-                            </h2>
+              </h2>
               <p className="text-slate-600 mb-6">
                 {editandoMedicamento
                   ? "Modifica la información del medicamento"
                   : "Agrega un nuevo medicamento al inventario"}
               </p>
 
-              <form onSubmit={(e) => { e.preventDefault(); guardarMedicamento(); }} className="space-y-4">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  guardarMedicamento();
+                }}
+                className="space-y-4"
+              >
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Descripción</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Descripción
+                  </label>
                   <input
                     type="text"
                     value={descripcion}
@@ -237,7 +247,9 @@ const Medicamentos = () => {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Dosis</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Dosis
+                    </label>
                     <input
                       type="text"
                       value={dosis}
@@ -247,11 +259,15 @@ const Medicamentos = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Cantidad Disponible</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Cantidad Disponible
+                    </label>
                     <input
                       type="number"
                       value={cantidadDisponible}
-                      onChange={(e) => setCantidadDisponible(parseInt(e.target.value))}
+                      onChange={(e) =>
+                        setCantidadDisponible(parseInt(e.target.value))
+                      }
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg"
                       required
                     />
@@ -259,7 +275,9 @@ const Medicamentos = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Fecha de Vencimiento</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Fecha de Vencimiento
+                  </label>
                   <input
                     type="date"
                     value={fechaVencimiento}
@@ -272,10 +290,15 @@ const Medicamentos = () => {
 
                 <div className="grid grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Tipo de Fármaco</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Tipo de Fármaco
+                    </label>
                     <select
                       value={tipoFarmacoId}
-                      onChange={(e) => setTipoFarmacoId(e.target.value)}
+                      onChange={(e) => {
+                        setTipoFarmacoId(e.target.value);
+                        setUbicacionId(""); // limpiar ubicación al cambiar tipo
+                      }}
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg"
                       required
                     >
@@ -289,7 +312,9 @@ const Medicamentos = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Ubicación</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Ubicación
+                    </label>
                     <select
                       value={ubicacionId}
                       onChange={(e) => setUbicacionId(e.target.value)}
@@ -297,16 +322,22 @@ const Medicamentos = () => {
                       required
                     >
                       <option value="">Seleccionar</option>
-                      {ubicaciones.map((ubic) => (
-                        <option key={ubic.id} value={ubic.id}>
-                          Estante {ubic.estante} - Tramo {ubic.tramo} - Celda {ubic.celda}
-                        </option>
-                      ))}
+                      {ubicaciones
+                        .filter(
+                          (u) => u.tipoFarmacoId === parseInt(tipoFarmacoId)
+                        )
+                        .map((u) => (
+                          <option key={u.id} value={u.id}>
+                            {`${u.estanteNombre} → ${u.tramoNombre} → ${u.celdaNombre}`}
+                          </option>
+                        ))}
                     </select>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Marca</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Marca
+                    </label>
                     <select
                       value={marcaId}
                       onChange={(e) => setMarcaId(e.target.value)}
