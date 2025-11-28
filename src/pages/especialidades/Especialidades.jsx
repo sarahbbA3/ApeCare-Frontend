@@ -1,51 +1,101 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
+
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { GraduationCap, Plus, Search, Edit, Trash2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+
+import Layout from "../../components/common/Layout";
 import {
   obtenerEspecialidades,
   crearEspecialidad,
   editarEspecialidad,
   eliminarEspecialidad,
 } from "../../services/EspecialidadesServices";
-import Layout from "../../components/common/Layout";
 
 const Especialidades = () => {
   const [especialidades, setEspecialidades] = useState([]);
-  const [nombre, setNombre] = useState("");
-  const [descripcion, setDescripcion] = useState("");
-  const [editando, setEditando] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
+  const [formMode, setFormMode] = useState("create");
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [formData, setFormData] = useState({ nombre: "", descripcion: "" });
+  const [error, setError] = useState(null);
+  const [cargando, setCargando] = useState(false);
 
   useEffect(() => {
     cargarEspecialidades();
   }, []);
 
   const cargarEspecialidades = async () => {
-    const data = await obtenerEspecialidades();
-    setEspecialidades(data || []);
-  };
-
-  const abrirModal = (esp = null) => {
-    setEditando(esp);
-    setNombre(esp?.nombre || "");
-    setDescripcion(esp?.descripcion || "");
-    setIsModalOpen(true);
-  };
-
-  const cerrarModal = () => {
-    setIsModalOpen(false);
-    setEditando(null);
-    setNombre("");
-    setDescripcion("");
-  };
-
-  const guardarEspecialidad = async () => {
-    const payload = { nombre, descripcion };
+    setCargando(true);
+    setError(null);
     try {
-      if (editando) {
-        await editarEspecialidad(editando.id, payload);
+      const data = await obtenerEspecialidades();
+      setEspecialidades(data || []);
+    } catch (err) {
+      console.error("Error al cargar especialidades:", err);
+      setError("No se pudieron cargar las especialidades");
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  const handleCreate = () => {
+    setFormMode("create");
+    setSelectedItem(null);
+    setFormData({ nombre: "", descripcion: "" });
+    setFormOpen(true);
+  };
+
+  const handleEdit = (item) => {
+    setFormMode("edit");
+    setSelectedItem(item);
+    setFormData({
+      nombre: item?.nombre || "",
+      descripcion: item?.descripcion || "",
+    });
+    setFormOpen(true);
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("¿Eliminar esta especialidad?")) return;
+    try {
+      await eliminarEspecialidad(id);
+      cargarEspecialidades();
+    } catch (err) {
+      console.error("Error al eliminar especialidad:", err);
+      alert("Hubo un error al eliminar");
+    }
+  };
+
+  const guardarEspecialidad = async (e) => {
+    e.preventDefault();
+    const payload = { ...formData };
+    try {
+      if (formMode === "edit" && selectedItem) {
+        await editarEspecialidad(selectedItem.id, payload);
       } else {
         await crearEspecialidad(payload);
       }
-      cerrarModal();
+      setFormOpen(false);
+      setSelectedItem(null);
+      setFormData({ nombre: "", descripcion: "" });
       cargarEspecialidades();
     } catch (err) {
       console.error("Error al guardar especialidad:", err);
@@ -53,119 +103,148 @@ const Especialidades = () => {
     }
   };
 
-  const eliminar = async (id) => {
-    if (!window.confirm("¿Eliminar esta especialidad?")) return;
-    try {
-      await eliminarEspecialidad(id);
-      cargarEspecialidades();
-    } catch (err) {
-      console.error("Error al eliminar:", err);
-      alert("Hubo un error al eliminar");
-    }
-  };
-
-  const formatearFecha = (d) => d || "-";
+  const formatearFecha = (d) => (d ? d.split("T")[0] : "-");
 
   return (
     <Layout>
-      <div className="min-h-screen bg-white/90 text-slate-700 rounded-xl p-6 shadow-lg backdrop-blur-md">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-slate-800">Especialidades</h2>
-          <button
-            onClick={() => abrirModal()}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
-          >
-            Agregar Especialidad
-          </button>
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="mb-8 flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+            <GraduationCap className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Especialidades</h1>
+            <p className="text-muted-foreground">
+              Gestiona las especialidades médicas disponibles
+            </p>
+          </div>
         </div>
 
-        <table className="min-w-full table-auto">
-          <thead className="bg-slate-100">
-            <tr className="text-left">
-              <th className="px-4 py-3 font-semibold text-slate-700">Nombre</th>
-              <th className="px-4 py-3 font-semibold text-slate-700">Descripción</th>
-              <th className="px-4 py-3 font-semibold text-slate-700">Creado</th>
-              <th className="px-4 py-3 font-semibold text-slate-700">Actualizado</th>
-              <th className="px-4 py-3 font-semibold text-slate-700">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {especialidades.length === 0 ? (
-              <tr>
-                <td colSpan="5" className="px-4 py-6 text-center text-slate-500">
-                  No hay especialidades registradas
-                </td>
-              </tr>
-            ) : (
-              especialidades.map((e) => (
-                <tr key={e.id} className="border-t border-slate-200 hover:bg-slate-50">
-                  <td className="px-4 py-3">{e.nombre}</td>
-                  <td className="px-4 py-3">{e.descripcion}</td>
-                  <td className="px-4 py-3">{formatearFecha(e.fechaCreacion)}</td>
-                  <td className="px-4 py-3">{formatearFecha(e.fechaActualizacion)}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => abrirModal(e)}
-                        className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded text-sm transition-colors"
-                      >
-                        Editar
-                      </button>
-                      <button
-                        onClick={() => eliminar(e.id)}
-                        className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm transition-colors"
-                      >
-                        Eliminar
-                      </button>
+        {/* Actions Bar */}
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input placeholder="Buscar especialidad..." className="pl-10" />
+          </div>
+
+          <Button className="gap-2" onClick={handleCreate}>
+            <Plus className="h-4 w-4" />
+            Nueva Especialidad
+          </Button>
+        </div>
+
+        {/* Error or Loading */}
+        {cargando ? (
+          <p className="text-muted-foreground">Cargando especialidades...</p>
+        ) : error ? (
+          <p className="text-destructive">{error}</p>
+        ) : especialidades.length === 0 ? (
+          <p className="text-muted-foreground">No hay especialidades registradas.</p>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {especialidades.map((e) => (
+              <Card key={e.id} className="hover:shadow-md transition-shadow">
+                <CardHeader>
+                  <CardTitle className="text-lg">{e.nombre}</CardTitle>
+                  <CardDescription>{e.descripcion}</CardDescription>
+                </CardHeader>
+
+                <CardContent>
+                  <div className="space-y-3 text-sm">
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Creación: {formatearFecha(e.fechaCreacion)}</span>
+                      <span>Actualización: {formatearFecha(e.fechaActualizacion)}</span>
                     </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
 
-        {isModalOpen && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl w-full max-w-md p-6">
-              <h3 className="text-xl font-semibold mb-4">
-                {editando ? "Editar Especialidad" : "Agregar Especialidad"}
-              </h3>
+                    {/* Botones */}
+                    <div className="flex gap-2 pt-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 gap-2 bg-transparent"
+                        onClick={() => handleEdit(e)}
+                      >
+                        <Edit className="h-3 w-3" />
+                        Editar
+                      </Button>
 
-              <div className="space-y-4">
-                <input
-                  type="text"
-                  value={nombre}
-                  onChange={(e) => setNombre(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg"
-                  placeholder="Nombre"
-                />
-                <textarea
-                  value={descripcion}
-                  onChange={(e) => setDescripcion(e.target.value)}
-                  rows="3"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg"
-                  placeholder="Descripción"
-                />
-
-                <div className="flex gap-3 mt-6">
-                  <button
-                    onClick={cerrarModal}
-                    className="flex-1 px-4 py-2 bg-slate-500 hover:bg-slate-600 text-white rounded-lg transition-colors"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    onClick={guardarEspecialidad}
-                    className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-                  >
-                    {editando ? "Actualizar" : "Guardar"}
-                  </button>
-                </div>
-              </div>
-            </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 gap-2 text-destructive hover:text-destructive bg-transparent"
+                        onClick={() => handleDelete(e.id)}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                        Eliminar
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         )}
+
+        {/* Form Modal */}
+        <Dialog open={formOpen} onOpenChange={setFormOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>
+                {formMode === "create" ? "Nueva Especialidad" : "Editar Especialidad"}
+              </DialogTitle>
+              <DialogDescription>
+                {formMode === "create"
+                  ? "Agrega una nueva especialidad médica"
+                  : "Modifica la información de la especialidad"}
+              </DialogDescription>
+            </DialogHeader>
+
+            <form onSubmit={guardarEspecialidad}>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="nombre">Nombre de la Especialidad</Label>
+                  <Input
+                    id="nombre"
+                    value={formData.nombre}
+                    onChange={(e) =>
+                      setFormData({ ...formData, nombre: e.target.value })
+                    }
+                    placeholder="Ej: Cardiología"
+                    required
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="descripcion">Descripción</Label>
+                  <Textarea
+                    id="descripcion"
+                    value={formData.descripcion}
+                    onChange={(e) =>
+                      setFormData({ ...formData, descripcion: e.target.value })
+                    }
+                    placeholder="Describe la especialidad médica..."
+                    rows={4}
+                    required
+                  />
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setFormOpen(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button type="submit">
+                  {formMode === "create" ? "Crear Especialidad" : "Guardar Cambios"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
     </Layout>
   );

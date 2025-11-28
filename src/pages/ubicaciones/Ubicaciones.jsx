@@ -1,252 +1,384 @@
-import { useEffect, useState } from "react"
+import React, { useEffect, useState } from "react";
+
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+import { MapPin, Plus, Search, Package, Edit, Trash2 } from "lucide-react";
+
+import Layout from "../../components/common/Layout";
 import {
   obtenerUbicaciones,
   crearUbicacion,
   editarUbicacion,
   eliminarUbicacion,
-} from "../../services/UbicacionesServices"
-import { obtenerCeldas } from "../../services/CeldasServices"
-import { obtenerTiposFarmaco } from "../../services/TipoFarmacosServices"
-import Layout from "../../components/common/Layout"
+} from "../../services/UbicacionesServices";
+import { obtenerCeldas } from "../../services/CeldasServices";
+import { obtenerTiposFarmaco } from "../../services/TipoFarmacosServices";
+import { obtenerMedicamentos } from "../../services/MedicamentosServices";
 
 const Ubicaciones = () => {
-  const [listUbicaciones, setListUbicaciones] = useState([])
-  const [listCeldas, setListCeldas] = useState([])
-  const [tiposFarmaco, setTiposFarmaco] = useState([])
+  const [ubicaciones, setUbicaciones] = useState([]);
+  const [celdas, setCeldas] = useState([]);
+  const [tiposFarmaco, setTiposFarmaco] = useState([]);
 
-  const [cargando, setCargando] = useState(false)
-  const [error, setError] = useState(null)
+  const [medicamentos, setMedicamentos] = useState([]);
+  const [productosPorUbicacion, setProductosPorUbicacion] = useState({}); // { ubicacionId: count }
 
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editandoUbicacion, setEditandoUbicacion] = useState(null)
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  const [nombre, setNombre] = useState("")
-  const [celdaId, setCeldaId] = useState("")
-  const [tipoFarmacoId, setTipoFarmacoId] = useState("")
+  const [formOpen, setFormOpen] = useState(false);
+  const [formMode, setFormMode] = useState("create");
+  const [selectedItem, setSelectedItem] = useState(null);
+
+  const [formData, setFormData] = useState({
+    nombre: "",
+    descripcion: "",
+    tipoFarmacoId: "",
+    celdaId: "",
+  });
 
   useEffect(() => {
-    cargarUbicaciones()
-    cargarCeldas()
-    cargarTiposFarmaco()
-  }, [])
+    // Carga inicial
+    cargarTodo();
+  }, []);
 
-  const cargarUbicaciones = async () => {
-    setCargando(true)
+  useEffect(() => {
+    // Recalcular conteo de productos por ubicación cuando cambien los medicamentos
+    actualizarConteoProductos(medicamentos);
+  }, [medicamentos]);
+
+  const cargarTodo = async () => {
+    setLoading(true);
+    setError(null);
     try {
-      const data = await obtenerUbicaciones()
-      setListUbicaciones(data || [])
-    } catch {
-      setError("Error cargando ubicaciones")
+      const [ubics, celdasData, tiposData, meds] = await Promise.all([
+        obtenerUbicaciones(),
+        obtenerCeldas(),
+        obtenerTiposFarmaco(),
+        obtenerMedicamentos(),
+      ]);
+      setUbicaciones(ubics || []);
+      setCeldas(celdasData || []);
+      setTiposFarmaco(tiposData || []);
+      setMedicamentos(meds || []);
+    } catch (err) {
+      console.error("Error cargando datos:", err);
+      setError("Error cargando ubicaciones y dependencias");
     } finally {
-      setCargando(false)
+      setLoading(false);
     }
-  }
+  };
 
-  const cargarCeldas = async () => {
+  const actualizarConteoProductos = (meds) => {
+    const conteo = {};
+    (meds || []).forEach((m) => {
+      const uId = m.ubicacionId;
+      if (!uId) return;
+      conteo[uId] = (conteo[uId] || 0) + 1;
+    });
+    setProductosPorUbicacion(conteo);
+  };
+
+  const handleCreate = () => {
+    setFormMode("create");
+    setSelectedItem(null);
+    setFormData({
+      nombre: "",
+      descripcion: "",
+      tipoFarmacoId: "",
+      celdaId: "",
+    });
+    setFormOpen(true);
+  };
+
+  const handleEdit = (item) => {
+    setFormMode("edit");
+    setSelectedItem(item);
+    setFormData({
+      nombre: item.nombre,
+      descripcion: item.descripcion || "",
+      tipoFarmacoId: String(item.tipoFarmacoId),
+      celdaId: String(item.celdaId),
+    });
+    setFormOpen(true);
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("¿Eliminar esta ubicación?")) return;
     try {
-      const data = await obtenerCeldas()
-      setListCeldas(data || [])
-    } catch {
-      console.error("Error cargando celdas")
+      await eliminarUbicacion(id, 3);
+      await cargarTodo();
+    } catch (err) {
+      console.error("Error eliminando ubicación:", err);
     }
-  }
+  };
 
-  const cargarTiposFarmaco = async () => {
-    try {
-      const data = await obtenerTiposFarmaco()
-      setTiposFarmaco(data || [])
-    } catch {
-      console.error("Error cargando tipos de fármaco")
-    }
-  }
-
-  const abrirModal = (ubic = null) => {
-    setEditandoUbicacion(ubic)
-    setNombre(ubic?.nombre || "")
-    setCeldaId(ubic?.celdaId?.toString() || "")
-    setTipoFarmacoId(ubic?.tipoFarmacoId?.toString() || "")
-    setIsModalOpen(true)
-  }
-
-  const cerrarModal = () => {
-    setIsModalOpen(false)
-    setEditandoUbicacion(null)
-    setNombre("")
-    setCeldaId("")
-    setTipoFarmacoId("")
-  }
-
-  const guardarUbicacion = async () => {
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     const payload = {
-      nombre,
-      celdaId: parseInt(celdaId),
-      tipoFarmacoId: parseInt(tipoFarmacoId),
+      nombre: formData.nombre,
+      descripcion: formData.descripcion,
+      tipoFarmacoId: parseInt(formData.tipoFarmacoId),
+      celdaId: parseInt(formData.celdaId),
       estadoId: 1,
-    }
+    };
     try {
-      editandoUbicacion
-        ? await editarUbicacion(editandoUbicacion.id, payload)
-        : await crearUbicacion(payload)
-      cerrarModal()
-      cargarUbicaciones()
-    } catch {
-      alert("Error al guardar ubicación")
+      if (formMode === "edit" && selectedItem) {
+        await editarUbicacion(selectedItem.id, payload);
+      } else {
+        await crearUbicacion(payload);
+      }
+      setFormOpen(false);
+      await cargarTodo();
+    } catch (err) {
+      console.error("Error guardando ubicación:", err);
     }
-  }
+  };
 
-  const eliminar = async (id) => {
-    if (!window.confirm("¿Eliminar esta ubicación?")) return
-    try {
-      await eliminarUbicacion(id, 3)
-      cargarUbicaciones()
-    } catch {
-      alert("Error al eliminar")
-    }
-  }
-
-  const formatearFecha = (d) => d || "-"
+  const formatearFecha = (d) => (d ? d.split("T")[0] : "-");
 
   return (
     <Layout>
-      <div className="min-h-screen p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold">Ubicaciones</h2>
-          <button
-            onClick={() => abrirModal()}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg"
-          >
-            Agregar Ubicación
-          </button>
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="mb-8 flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+            <MapPin className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Ubicaciones</h1>
+            <p className="text-muted-foreground">
+              Controla la ubicación física de los medicamentos
+            </p>
+          </div>
         </div>
 
-        {cargando ? (
-          <div className="py-8 text-center">Cargando...</div>
+        {/* Actions Bar */}
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input placeholder="Buscar ubicación..." className="pl-10" />
+          </div>
+
+          <Button className="gap-2" onClick={handleCreate}>
+            <Plus className="h-4 w-4" />
+            Nueva Ubicación
+          </Button>
+        </div>
+
+        {/* Error or Loading */}
+        {loading ? (
+          <p className="text-muted-foreground">Cargando ubicaciones...</p>
         ) : error ? (
-          <div className="bg-red-100 text-red-700 px-4 py-3 rounded">{error}</div>
+          <p className="text-destructive">{error}</p>
+        ) : ubicaciones.length === 0 ? (
+          <p className="text-muted-foreground">No hay ubicaciones registradas.</p>
         ) : (
-          <table className="min-w-full table-auto">
-            <thead className="bg-slate-100">
-              <tr>
-                <th className="px-4 py-3">Nombre</th>
-                <th className="px-4 py-3">Tipo de Fármaco</th>
-                <th className="px-4 py-3">Estante</th>
-                <th className="px-4 py-3">Tramo</th>
-                <th className="px-4 py-3">Celda</th>
-                <th className="px-4 py-3">Creación</th>
-                <th className="px-4 py-3">Actualización</th>
-                <th className="px-4 py-3">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {listUbicaciones.length === 0 ? (
-                <tr>
-                  <td colSpan="8" className="text-center py-6">
-                    No hay ubicaciones registradas
-                  </td>
-                </tr>
-              ) : (
-                listUbicaciones.map((u) => (
-                  <tr key={u.id} className="border-t">
-                    <td className="px-4 py-3">{u.nombre}</td>
-                    <td className="px-4 py-3">{u.tipoFarmacoNombre}</td>
-                    <td className="px-4 py-3">{u.estanteNombre}</td>
-                    <td className="px-4 py-3">{u.tramoNombre}</td>
-                    <td className="px-4 py-3">{u.celdaNombre}</td>
-                    <td className="px-4 py-3">{formatearFecha(u.fechaCreacion)}</td>
-                    <td className="px-4 py-3">{formatearFecha(u.fechaActualizacion)}</td>
-                    <td className="px-4 py-3">
-                      <button
-                        onClick={() => abrirModal(u)}
-                        className="bg-yellow-500 text-white px-3 py-1 rounded mr-2"
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {ubicaciones.map((u) => (
+              <Card key={u.id} className="hover:shadow-md transition-shadow">
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <CardTitle>{u.nombre}</CardTitle>
+                      <CardDescription>{u.descripcion}</CardDescription>
+                    </div>
+                    <Badge>Activa</Badge>
+                  </div>
+                </CardHeader>
+
+                <CardContent>
+                  <div className="space-y-3 text-sm">
+                    {/* Tipo de fármaco */}
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Tipo de fármaco:</span>
+                      <span className="font-medium">{u.tipoFarmacoNombre}</span>
+                    </div>
+
+                    {/* Jerarquía: Estante → Tramo → Celda */}
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Ubicación:</span>
+                      <span className="font-medium text-xs">
+                        {`${u.estanteNombre} → ${u.tramoNombre} → ${u.celdaNombre}`}
+                      </span>
+                    </div>
+
+                    {/* Productos (conteo dinámico) */}
+                    <div className="flex items-center gap-2">
+                      <Package className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">
+                        {productosPorUbicacion[u.id] || 0} productos
+                      </span>
+                    </div>
+
+                    {/* Fechas */}
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Creación: {formatearFecha(u.fechaCreacion)}</span>
+                      <span>Actualización: {formatearFecha(u.fechaActualizacion)}</span>
+                    </div>
+
+                    {/* Botones */}
+                    <div className="flex gap-2 pt-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 gap-2 bg-transparent"
+                        onClick={() => handleEdit(u)}
                       >
+                        <Edit className="h-3 w-3" />
                         Editar
-                      </button>
-                      <button
-                        onClick={() => eliminar(u.id)}
-                        className="bg-red-500 text-white px-3 py-1 rounded"
+                      </Button>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 gap-2 text-destructive bg-transparent hover:text-destructive"
+                        onClick={() => handleDelete(u.id)}
                       >
+                        <Trash2 className="h-3 w-3" />
                         Eliminar
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         )}
 
-        {isModalOpen && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl w-full max-w-md p-6">
-              <h3 className="text-xl font-semibold mb-4">
-                {editandoUbicacion ? "Editar Ubicación" : "Agregar Ubicación"}
-              </h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="block mb-1">Nombre de la Ubicación</label>
-                  <input
-                    type="text"
-                    value={nombre}
-                    onChange={(e) => setNombre(e.target.value)}
+        {/* Modal Form */}
+        <Dialog open={formOpen} onOpenChange={setFormOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>
+                {formMode === "create" ? "Nueva Ubicación" : "Editar Ubicación"}
+              </DialogTitle>
+              <DialogDescription>
+                {formMode === "create"
+                  ? "Agrega una nueva ubicación al sistema"
+                  : "Modifica la información de la ubicación"}
+              </DialogDescription>
+            </DialogHeader>
+
+            <form onSubmit={handleSubmit}>
+              <div className="grid gap-4 py-4">
+                {/* Nombre */}
+                <div className="grid gap-2">
+                  <Label htmlFor="nombre">Nombre de la Ubicación</Label>
+                  <Input
+                    id="nombre"
+                    value={formData.nombre}
+                    onChange={(e) =>
+                      setFormData({ ...formData, nombre: e.target.value })
+                    }
+                    placeholder="Ej: Sala A - Estante 1"
                     required
-                    className="w-full border px-3 py-2 rounded"
                   />
                 </div>
 
-                <div>
-                  <label className="block mb-1">Tipo de Fármaco</label>
-                  <select
-                    value={tipoFarmacoId}
-                    onChange={(e) => setTipoFarmacoId(e.target.value)}
-                    required
-                    className="w-full border px-3 py-2 rounded"
+                {/* Tipo de Fármaco */}
+                <div className="grid gap-2">
+                  <Label htmlFor="tipoFarmaco">Tipo de Fármaco</Label>
+                  <Select
+                    value={formData.tipoFarmacoId}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, tipoFarmacoId: value })
+                    }
                   >
-                    <option value="">Seleccionar tipo</option>
-                    {tiposFarmaco.map((t) => (
-                      <option key={t.id} value={t.id}>{t.nombre}</option>
-                    ))}
-                  </select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar tipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {tiposFarmaco.map((t) => (
+                        <SelectItem key={t.id} value={String(t.id)}>
+                          {t.nombre}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
-                <div>
-                  <label className="block mb-1">Celda</label>
-                  <select
-                    value={celdaId}
-                    onChange={(e) => setCeldaId(e.target.value)}
-                    required
-                    className="w-full border px-3 py-2 rounded"
+                {/* Celda */}
+                <div className="grid gap-2">
+                  <Label htmlFor="celda">Celda</Label>
+                  <Select
+                    value={formData.celdaId}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, celdaId: value })
+                    }
                   >
-                    <option value="">Seleccionar celda</option>
-                    {listCeldas.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {`${c.estanteNombre || "-"} → ${c.tramoNombre || "-"} → ${c.nombre}`}
-                      </option>
-                    ))}
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar celda" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {celdas.map((c) => (
+                        <SelectItem key={c.id} value={String(c.id)}>
+                          {`${c.estanteNombre || "-"} → ${c.tramoNombre || "-"} → ${c.nombre}`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-                  </select>
+                {/* Descripción */}
+                <div className="grid gap-2">
+                  <Label htmlFor="descripcion">Descripción</Label>
+                  <Textarea
+                    id="descripcion"
+                    rows={3}
+                    value={formData.descripcion}
+                    onChange={(e) =>
+                      setFormData({ ...formData, descripcion: e.target.value })
+                    }
+                    placeholder="Describe la ubicación..."
+                  />
                 </div>
               </div>
 
-              <div className="flex gap-3 mt-6">
-                <button
-                  onClick={cerrarModal}
-                  className="flex-1 bg-slate-500 text-white px-4 py-2 rounded"
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setFormOpen(false)}
                 >
                   Cancelar
-                </button>
-                <button
-                  onClick={guardarUbicacion}
-                  className="flex-1 bg-blue-600 text-white px-4 py-2 rounded"
-                >
-                  {editandoUbicacion ? "Actualizar" : "Guardar"}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+                </Button>
+                <Button type="submit">
+                  {formMode === "create" ? "Crear" : "Guardar Cambios"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
     </Layout>
-  )
-}
+  );
+};
 
-export default Ubicaciones
+export default Ubicaciones;
