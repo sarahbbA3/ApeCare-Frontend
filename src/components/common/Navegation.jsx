@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Link, useLocation } from "react-router-dom"
+import { href, Link, useLocation } from "react-router-dom"
 import { useAuth } from "../../hooks/useAuth"
 import {
   Pill,
@@ -21,28 +21,35 @@ import {
   Users,
   UserStar,
   UserPen,
+  Boxes,
+  Box,
+  Grid3x3,
+  PillBottle,
   LogOut,
 } from "lucide-react"
 
 const navItems = [
   { href: "/", label: "Inicio", icon: Home },
-  { href: "/tipo-farmaco", label: "Tipo de Fármaco", icon: Pill },
-  { href: "/marca", label: "Marca", icon: Tag },
+  { href: "/registro-visita", label: "Registro de Visitas", icon: ClipboardList},
+  { href: "/paciente", label: "Pacientes", icon: Users },
+  { href: "/medicamento", label: "Medicamentos", icon: Pill },
   { href: "/ubicacion", label: "Ubicación", icon: MapPin },
-  { href: "/sintoma", label: "Síntomas", icon: HeartPulse },
   {
     label: "Gestión Clínica",
     icon: Stethoscope,
     submenu: [
-      { href: "/medicamento", label: "Medicamentos", icon: Pill },
-      { href: "/tipo-paciente", label: "Tipo de Paciente", icon: UserCircle },
-      { href: "/paciente", label: "Pacientes", icon: Users },
-      { href: "/tanda-labor", label: "Tanda Labor", icon: Clock },
-      { href: "/especialidad", label: "Especialidades", icon: Briefcase },
+      { href: "/tipo-farmaco", label: "Tipo de Fármaco", icon: PillBottle },
+      { href: "/marca", label: "Marca", icon: Tag },
       { href: "/medico", label: "Médicos", icon: Stethoscope },
-      { href: "/registro-visita", label: "Registro de Visitas", icon: ClipboardList },
+      { href: "/especialidad", label: "Especialidades", icon: Briefcase },
+      { href: "/tanda-labor", label: "Tanda Labor", icon: Clock },
+      { href: "/sintoma", label: "Síntomas", icon: HeartPulse },
+      { href: "/tramo", label: "Tramos", icon: Boxes},
+      { href: "/celda", label: "Celdas", icon: Box},
+      { href: "/estante", label: "Estantes", icon: Grid3x3},
       { href: "/rol", label: "Roles", icon: UserStar },
       { href: "/usuario", label: "Usuarios", icon: UserPen },
+      { href: "/tipo-paciente", label: "Tipo de Paciente", icon: UserCircle },
     ],
   },
 ]
