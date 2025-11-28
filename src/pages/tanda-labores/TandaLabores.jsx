@@ -5,14 +5,38 @@ import {
   editarTanda,
   eliminarTanda,
 } from "../../services/TandaLaboresServices";
+
 import Layout from "../../components/common/Layout";
 
-const TandaLabores = () => {
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
+import { Clock, Plus, Search, Edit, Trash2 } from "lucide-react";
+
+const TandaLabor = () => {
   const [tandas, setTandas] = useState([]);
-  const [nombre, setNombre] = useState("");
-  const [descripcion, setDescripcion] = useState("");
-  const [editandoTanda, setEditandoTanda] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
+  const [formMode, setFormMode] = useState("create");
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const [formData, setFormData] = useState({
+    nombre: "",
+    descripcion: "",
+  });
 
   useEffect(() => {
     cargarTandas();
@@ -23,152 +47,220 @@ const TandaLabores = () => {
     setTandas(data || []);
   };
 
-  const abrirModal = (tanda = null) => {
-    setEditandoTanda(tanda);
-    setNombre(tanda?.nombre || "");
-    setDescripcion(tanda?.descripcion || "");
-    setIsModalOpen(true);
+  const handleCreate = () => {
+    setFormMode("create");
+    setSelectedItem(null);
+    setFormData({ nombre: "", descripcion: "" });
+    setFormOpen(true);
   };
 
-  const cerrarModal = () => {
-    setIsModalOpen(false);
-    setEditandoTanda(null);
-    setNombre("");
-    setDescripcion("");
+  const handleEdit = (item) => {
+    setFormMode("edit");
+    setSelectedItem(item);
+    setFormData({
+      nombre: item?.nombre || "",
+      descripcion: item?.descripcion || "",
+    });
+    setFormOpen(true);
   };
 
-  const guardarTanda = async () => {
-    const payload = { nombre, descripcion };
-    try {
-      if (editandoTanda) {
-        await editarTanda(editandoTanda.id, payload);
-      } else {
-        await crearTanda(payload);
-      }
-      cerrarModal();
-      cargarTandas();
-    } catch (err) {
-      console.error("Error al guardar tanda:", err);
-      alert("Hubo un error al guardar");
-    }
-  };
-
-  const eliminar = async (id) => {
+  const handleDelete = async (id) => {
     if (!window.confirm("¿Eliminar esta tanda?")) return;
     try {
       await eliminarTanda(id);
       cargarTandas();
-    } catch (err) {
-      console.error("Error al eliminar:", err);
-      alert("Hubo un error al eliminar");
+    } catch {
+      alert("Error al eliminar tanda");
     }
   };
 
-  const formatearFecha = (d) => d || "-";
+  const guardarTanda = async (e) => {
+    e.preventDefault();
+    try {
+      if (formMode === "edit" && selectedItem) {
+        await editarTanda(selectedItem.id, formData);
+      } else {
+        await crearTanda(formData);
+      }
+      setFormOpen(false);
+      cargarTandas();
+    } catch {
+      alert("Error al guardar tanda");
+    }
+  };
+
+  const filteredTandas = tandas.filter((t) =>
+    t.nombre.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const totalTandas = tandas.length;
+  const totalMedicos = tandas.reduce((acc, t) => acc + (t.medicosAsignados || 0), 0);
 
   return (
     <Layout>
-      <div className="min-h-screen bg-white/90 text-slate-700 rounded-xl p-6 shadow-lg backdrop-blur-md">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-slate-800">Tandas de Labor</h2>
-          <button
-            onClick={() => abrirModal()}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
-          >
-            Agregar Tanda
-          </button>
+      <div className="container mx-auto px-4 py-8">
+        {/* HEADER */}
+        <div className="mb-8 flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+            <Clock className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Tanda Labor</h1>
+            <p className="text-muted-foreground">Gestiona los turnos de trabajo del personal médico</p>
+          </div>
         </div>
 
-        <table className="min-w-full table-auto">
-          <thead className="bg-slate-100">
-            <tr className="text-left">
-              <th className="px-4 py-3 font-semibold text-slate-700">Nombre</th>
-              <th className="px-4 py-3 font-semibold text-slate-700">Descripción</th>
-              <th className="px-4 py-3 font-semibold text-slate-700">Fecha de Creación</th>
-              <th className="px-4 py-3 font-semibold text-slate-700">Fecha de Actualización</th>
-              <th className="px-4 py-3 font-semibold text-slate-700">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {tandas.length === 0 ? (
-              <tr>
-                <td colSpan="5" className="px-4 py-6 text-center text-slate-500">
-                  No hay tandas registradas
-                </td>
-              </tr>
-            ) : (
-              tandas.map((t) => (
-                <tr key={t.id} className="border-t border-slate-200 hover:bg-slate-50">
-                  <td className="px-4 py-3">{t.nombre}</td>
-                  <td className="px-4 py-3">{t.descripcion}</td>
-                  <td className="px-4 py-3">{formatearFecha(t.fechaCreacion)}</td>
-                  <td className="px-4 py-3">{formatearFecha(t.fechaActualizacion)}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => abrirModal(t)}
-                        className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded text-sm transition-colors"
-                      >
-                        Editar
-                      </button>
-                      <button
-                        onClick={() => eliminar(t.id)}
-                        className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm transition-colors"
-                      >
-                        Eliminar
-                      </button>
+        {/* BUSCADOR + BOTÓN */}
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Buscar tanda..."
+              className="pl-10"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+
+          <Button className="gap-2" onClick={handleCreate}>
+            <Plus className="h-4 w-4" />
+            Nueva Tanda
+          </Button>
+        </div>
+
+        {/* ESTADÍSTICAS */}
+        <div className="grid gap-4 md:grid-cols-2 mb-8">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardDescription>Total Tandas</CardDescription>
+              <CardTitle className="text-3xl">{totalTandas}</CardTitle>
+            </CardHeader>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardDescription>Médicos Asignados</CardDescription>
+              <CardTitle className="text-3xl">{totalMedicos}</CardTitle>
+            </CardHeader>
+          </Card>
+        </div>
+
+        {/* LISTA DE TANDAS */}
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {filteredTandas.length === 0 ? (
+            <p className="text-muted-foreground">No hay tandas registradas</p>
+          ) : (
+            filteredTandas.map((tanda) => (
+              <Card key={tanda.id} className="hover:shadow-md transition-shadow">
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <CardTitle className="text-lg">{tanda.nombre}</CardTitle>
+                      <CardDescription>{tanda.descripcion}</CardDescription>
                     </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+                    <Badge variant="secondary">{tanda.estado?.nombre || "Activa"}</Badge>
+                  </div>
+                </CardHeader>
 
-        {isModalOpen && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl w-full max-w-md p-6">
-              <h3 className="text-xl font-semibold mb-4">
-                {editandoTanda ? "Editar Tanda" : "Agregar Tanda"}
-              </h3>
+                <CardContent>
+                  <div className="space-y-3">
+                    {/* Médicos asignados */}
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Médicos asignados:</span>
+                      <span className="font-medium">{tanda.medicosAsignados || 0}</span>
+                    </div>
 
-              <div className="space-y-4">
-                <input
-                  type="text"
-                  value={nombre}
-                  onChange={(e) => setNombre(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg"
-                  placeholder="Nombre"
-                />
-                <textarea
-                  value={descripcion}
-                  onChange={(e) => setDescripcion(e.target.value)}
-                  rows="3"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg"
-                  placeholder="Descripción"
-                />
+                    {/* Acciones */}
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 gap-2 bg-transparent"
+                        onClick={() => handleEdit(tanda)}
+                      >
+                        <Edit className="h-3 w-3" /> Editar
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 gap-2 text-destructive hover:text-destructive bg-transparent"
+                        onClick={() => handleDelete(tanda.id)}
+                      >
+                        <Trash2 className="h-3 w-3" /> Eliminar
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </div>
 
-                <div className="flex gap-3 mt-6">
-                  <button
-                    onClick={cerrarModal}
-                    className="flex-1 px-4 py-2 bg-slate-500 hover:bg-slate-600 text-white rounded-lg transition-colors"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    onClick={guardarTanda}
-                    className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-                  >
-                    {editandoTanda ? "Actualizar" : "Guardar"}
-                  </button>
+        {/* MODAL FORM */}
+        <Dialog open={formOpen} onOpenChange={setFormOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>
+                {formMode === "create" ? "Nueva Tanda Labor" : "Editar Tanda Labor"}
+              </DialogTitle>
+              <DialogDescription>
+                {formMode === "create"
+                  ? "Agrega una nueva tanda de trabajo"
+                  : "Modifica la información de la tanda"}
+              </DialogDescription>
+            </DialogHeader>
+
+            <form onSubmit={guardarTanda}>
+              <div className="grid gap-4 py-4">
+                {/* Nombre */}
+                <div className="grid gap-2">
+                  <Label htmlFor="nombre">Nombre de la Tanda</Label>
+                  <Input
+                    id="nombre"
+                    value={formData.nombre}
+                    onChange={(e) =>
+                      setFormData({ ...formData, nombre: e.target.value })
+                    }
+                    placeholder="Ej: Turno Mañana"
+                    required
+                  />
+                </div>
+
+                {/* Descripción */}
+                <div className="grid gap-2">
+                  <Label htmlFor="descripcion">Descripción</Label>
+                  <Textarea
+                    id="descripcion"
+                    value={formData.descripcion}
+                    onChange={(e) =>
+                      setFormData({ ...formData, descripcion: e.target.value })
+                    }
+                    placeholder="Información adicional sobre la tanda..."
+                    rows={3}
+                  />
                 </div>
               </div>
-            </div>
-          </div>
-        )}
+
+              {/* FOOTER */}
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setFormOpen(false)}
+                                >
+                  Cancelar
+                </Button>
+
+                <Button type="submit">
+                  {formMode === "create" ? "Crear Tanda" : "Guardar Cambios"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
     </Layout>
   );
 };
 
-export default TandaLabores;
+export default TandaLabor;

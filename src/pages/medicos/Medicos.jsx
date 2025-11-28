@@ -1,21 +1,58 @@
-import { useEffect, useState } from "react"
+import React, { useEffect, useState } from "react";
+
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+import {
+  UserCog,
+  Plus,
+  Search,
+  Edit,
+  Trash2,
+  IdCard,
+} from "lucide-react";
+
+import Layout from "../../components/common/Layout";
 import {
   obtenerMedicos,
   crearMedico,
   editarMedico,
   eliminarMedico,
-} from "../../services/MedicosServices"
-import { obtenerEspecialidades } from "../../services/EspecialidadesServices"
-import { obtenerTandas } from "../../services/TandaLaboresServices"
-import { obtenerUsuarios } from "../../services/UsuariosServices"
-import Layout from "../../components/common/Layout"
+} from "../../services/MedicosServices";
+import { obtenerEspecialidades } from "../../services/EspecialidadesServices";
+import { obtenerTandas } from "../../services/TandaLaboresServices";
+import { obtenerUsuarios } from "../../services/UsuariosServices";
 
 const Medicos = () => {
-  const [medicos, setMedicos] = useState([])
-  const [especialidades, setEspecialidades] = useState([])
-  const [tandas, setTandas] = useState([])
-  const [usuarios, setUsuarios] = useState([])
-  const [usuariosDisponibles, setUsuariosDisponibles] = useState([])
+  const [medicos, setMedicos] = useState([]);
+  const [especialidades, setEspecialidades] = useState([]);
+  const [tandas, setTandas] = useState([]);
+  const [usuarios, setUsuarios] = useState([]);
+  const [usuariosDisponibles, setUsuariosDisponibles] = useState([]);
 
   const [formData, setFormData] = useState({
     nombre: "",
@@ -23,302 +60,323 @@ const Medicos = () => {
     especialidadId: "",
     tandaLaborId: "",
     usuarioId: "",
-  })
+  });
 
-  const [editando, setEditando] = useState(null)
-  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [editando, setEditando] = useState(null);
+  const [formOpen, setFormOpen] = useState(false);
 
   useEffect(() => {
-    cargarDatos()
-  }, [])
+    cargarDatos();
+  }, []);
 
   const cargarDatos = async (medicoEnEdicion = null) => {
-  const [m, e, t, u] = await Promise.all([
-    obtenerMedicos(),
-    obtenerEspecialidades(),
-    obtenerTandas(),
-    obtenerUsuarios(),
-  ])
-  setMedicos(m || [])
-  setEspecialidades(e || [])
-  setTandas(t || [])
-  setUsuarios(u || [])
+    const [m, e, t, u] = await Promise.all([
+      obtenerMedicos(),
+      obtenerEspecialidades(),
+      obtenerTandas(),
+      obtenerUsuarios(),
+    ]);
+    setMedicos(m || []);
+    setEspecialidades(e || []);
+    setTandas(t || []);
+    setUsuarios(u || []);
 
-  const usados = m.map((medico) => medico.usuarioId)
-  let disponibles = u.filter((usuario) => !usados.includes(usuario.id))
+    const usados = m.map((medico) => medico.usuarioId);
+    let disponibles = u.filter((usuario) => !usados.includes(usuario.id));
 
-  // ✅ incluir el usuario actual si estamos editando
-  if (medicoEnEdicion?.usuarioId) {
-    const usuarioActual = u.find((u) => u.id === medicoEnEdicion.usuarioId)
-    if (usuarioActual && !disponibles.some((d) => d.id === usuarioActual.id)) {
-      disponibles = [usuarioActual, ...disponibles]
+    if (medicoEnEdicion?.usuarioId) {
+      const usuarioActual = u.find((u) => u.id === medicoEnEdicion.usuarioId);
+      if (usuarioActual && !disponibles.some((d) => d.id === usuarioActual.id)) {
+        disponibles = [usuarioActual, ...disponibles];
+      }
     }
-  }
 
-  setUsuariosDisponibles(disponibles || [])
-}
+    setUsuariosDisponibles(disponibles || []);
+  };
 
   const abrirModal = (medico = null) => {
-  setEditando(medico)
-  setFormData({
-    nombre: medico?.nombre || "",
-    cedula: medico?.cedula || "",
-    especialidadId: medico?.especialidadId || "",
-    tandaLaborId: medico?.tandaLaborId || "",
-    usuarioId: medico?.usuarioId || "",
-  })
-  setIsModalOpen(true)
-  cargarDatos(medico) // ✅ pasa el médico directamente
-}
+    setEditando(medico);
+    setFormData({
+      nombre: medico?.nombre || "",
+      cedula: medico?.cedula || "",
+      especialidadId: medico?.especialidadId || "",
+      tandaLaborId: medico?.tandaLaborId || "",
+      usuarioId: medico?.usuarioId || "",
+    });
+    setFormOpen(true);
+    cargarDatos(medico);
+  };
 
   const cerrarModal = () => {
-    setIsModalOpen(false)
-    setEditando(null)
+    setFormOpen(false);
+    setEditando(null);
     setFormData({
       nombre: "",
       cedula: "",
       especialidadId: "",
       tandaLaborId: "",
       usuarioId: "",
-    })
-  }
+    });
+  };
 
-  const guardarMedico = async () => {
+  const guardarMedico = async (e) => {
+    e.preventDefault();
     try {
       if (editando) {
-        await editarMedico(editando.id, formData)
+        await editarMedico(editando.id, formData);
       } else {
-        await crearMedico(formData)
+        await crearMedico(formData);
       }
-      cerrarModal()
-      cargarDatos()
+      cerrarModal();
+      cargarDatos();
     } catch (err) {
-      console.error("Error al guardar médico:", err)
-      alert("Hubo un error al guardar")
+      console.error("Error al guardar médico:", err);
+      alert("Hubo un error al guardar");
     }
-  }
+  };
 
   const eliminar = async (id) => {
-    if (!window.confirm("¿Eliminar este médico?")) return
+    if (!window.confirm("¿Eliminar este médico?")) return;
     try {
-      await eliminarMedico(id)
-      cargarDatos()
+      await eliminarMedico(id);
+      cargarDatos();
     } catch (err) {
-      console.error("Error al eliminar:", err)
-      alert("Hubo un error al eliminar")
+      console.error("Error al eliminar:", err);
+      alert("Hubo un error al eliminar");
     }
-  }
+  };
 
-  const formatearFecha = (d) => d || "-"
+  const formatearFecha = (d) => (d ? d.split("T")[0] : "-");
 
   const obtenerNombreEspecialidad = (id) =>
-    especialidades.find((e) => e.id === id)?.nombre || "-"
+    especialidades.find((e) => e.id === id)?.nombre || "-";
 
   const obtenerNombreTanda = (id) =>
-    tandas.find((t) => t.id === id)?.nombre || "-"
+    tandas.find((t) => t.id === id)?.nombre || "-";
 
   return (
     <Layout>
-      <div className="min-h-screen bg-white/90 text-slate-700 rounded-xl p-6 shadow-lg backdrop-blur-md">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-slate-800">Médicos</h2>
-          <button
-            onClick={() => abrirModal()}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
-          >
-            Agregar Médico
-          </button>
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="mb-8 flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+            <UserCog className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Médicos</h1>
+            <p className="text-muted-foreground">
+              Gestiona el personal médico del dispensario
+            </p>
+          </div>
         </div>
 
-        <table className="min-w-full table-auto">
-          <thead className="bg-slate-100">
-            <tr className="text-left">
-              <th className="px-4 py-3 font-semibold text-slate-700">Nombre</th>
-              <th className="px-4 py-3 font-semibold text-slate-700">Cédula</th>
-              <th className="px-4 py-3 font-semibold text-slate-700">Especialidad</th>
-              <th className="px-4 py-3 font-semibold text-slate-700">Tanda</th>
-              <th className="px-4 py-3 font-semibold text-slate-700">Fecha de Creación</th>
-              <th className="px-4 py-3 font-semibold text-slate-700">Fecha de Actualización</th>
-              <th className="px-4 py-3 font-semibold text-slate-700">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {medicos.length === 0 ? (
-              <tr>
-                <td colSpan="7" className="px-4 py-6 text-center text-slate-500">
-                  No hay médicos registrados
-                </td>
-              </tr>
-            ) : (
-              medicos.map((m) => (
-                <tr key={m.id} className="border-t border-slate-200 hover:bg-slate-50">
-                  <td className="px-4 py-3">{m.nombre}</td>
-                  <td className="px-4 py-3">{m.cedula}</td>
-                  <td className="px-4 py-3">{obtenerNombreEspecialidad(m.especialidadId)}</td>
-                  <td className="px-4 py-3">{obtenerNombreTanda(m.tandaLaborId)}</td>
-                  <td className="px-4 py-3">{formatearFecha(m.fechaCreacion)}</td>
-                  <td className="px-4 py-3">{formatearFecha(m.fechaActualizacion)}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => abrirModal(m)}
-                        className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded text-sm transition-colors"
-                      >
-                        Editar
-                      </button>
-                      <button
-                        onClick={() => eliminar(m.id)}
-                        className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm transition-colors"
-                      >
-                        Eliminar
-                      </button>
+        {/* Actions Bar */}
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input placeholder="Buscar médico..." className="pl-10" />
+          </div>
+
+          <Button className="gap-2" onClick={() => abrirModal()}>
+            <Plus className="h-4 w-4" />
+            Nuevo Médico
+          </Button>
+        </div>
+
+        {/* Lista de Médicos */}
+        {medicos.length === 0 ? (
+          <p className="text-muted-foreground">No hay médicos registrados.</p>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {medicos.map((m) => (
+              <Card key={m.id} className="hover:shadow-md transition-shadow">
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <CardTitle className="text-lg">{m.nombre}</CardTitle>
+                      <CardDescription>
+                        {obtenerNombreEspecialidad(m.especialidadId)}
+                      </CardDescription>
                     </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+                    <Badge variant="secondary">Activo</Badge>
+                  </div>
+                </CardHeader>
 
-        {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-            <div className="bg-white rounded-xl shadow-xl w-full max-w-xl p-6 relative">
-              <button
-                onClick={cerrarModal}
-                className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
-              >
-                ✕
-              </button>
+                <CardContent>
+                  <div className="space-y-3 text-sm">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <IdCard className="h-3 w-3" />
+                      <span className="text-xs">{m.cedula}</span>
+                    </div>
 
-              <h2 className="text-xl font-bold text-gray-800 mb-1">
+                    <div className="flex justify-between pt-2 border-t text-xs text-muted-foreground">
+                      <span>Tanda:</span>
+                      <span className="font-medium">
+                        {obtenerNombreTanda(m.tandaLaborId)}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Creación: {formatearFecha(m.fechaCreacion)}</span>
+                      <span>Actualización: {formatearFecha(m.fechaActualizacion)}</span>
+                    </div>
+
+                    {/* Botones */}
+                    <div className="flex gap-2 pt-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 gap-2 bg-transparent"
+                        onClick={() => abrirModal(m)}
+                      >
+                        <Edit className="h-3 w-3" />
+                        Editar
+                      </Button>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 gap-2 text-destructive hover:text-destructive bg-transparent"
+                        onClick={() => eliminar(m.id)}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                        Eliminar
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+
+        {/* Modal Form */}
+        <Dialog open={formOpen} onOpenChange={setFormOpen}>
+          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>
                 {editando ? "Editar Médico" : "Nuevo Médico"}
-              </h2>
-              <p className="text-sm text-gray-500 mb-4">
+              </DialogTitle>
+              <DialogDescription>
                 {editando
                   ? "Modifica la información del médico"
                   : "Agrega un nuevo médico al sistema"}
-              </p>
+              </DialogDescription>
+            </DialogHeader>
 
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault()
-                  guardarMedico()
-                }}
-                className="grid gap-6"
-              >
-                <div className="grid gap-2">
-                  <label htmlFor="nombre" className="text-sm font-medium text-gray-700">
-                    Nombre Completo
-                  </label>
-                  <input
-                    id="nombre"
-                    value={formData.nombre}
-                    onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                    placeholder="Dr. Roberto Fernández"
-                    required
-                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                  />
-                </div>
+            <form onSubmit={guardarMedico}>
+  <div className="grid gap-4 py-4">
+    {/* Nombre */}
+    <div className="grid gap-2">
+      <Label htmlFor="nombre">Nombre Completo</Label>
+      <Input
+        id="nombre"
+        value={formData.nombre}
+        onChange={(e) =>
+          setFormData({ ...formData, nombre: e.target.value })
+        }
+        placeholder="Dr. Roberto Fernández"
+        required
+      />
+    </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <label htmlFor="especialidadId" className="text-sm font-medium text-gray-700">
-                      Especialidad
-                    </label>
-                    <select
-                      id="especialidadId"
-                      value={formData.especialidadId}
-                      onChange={(e) => setFormData({ ...formData, especialidadId: e.target.value })}
-                      required
-className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
->
-  <option value="">Seleccionar especialidad</option>
-  {especialidades.map((e) => (
-    <option key={e.id} value={e.id}>
-      {e.nombre}
-    </option>
-  ))}
-</select>
-</div>
+    {/* Especialidad + Cédula */}
+    <div className="grid grid-cols-2 gap-4">
+      <div className="grid gap-2">
+        <Label htmlFor="especialidadId">Especialidad</Label>
+        <Select
+          value={String(formData.especialidadId)}
+          onValueChange={(value) =>
+            setFormData({ ...formData, especialidadId: Number(value) })
+          }
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Seleccionar especialidad" />
+          </SelectTrigger>
+          <SelectContent>
+            {especialidades.map((e) => (
+              <SelectItem key={e.id} value={String(e.id)}>
+                {e.nombre}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
-<div className="grid gap-2">
-  <label htmlFor="cedula" className="text-sm font-medium text-gray-700">
-    Cédula
-  </label>
-  <input
-    id="cedula"
-    value={formData.cedula}
-    onChange={(e) => setFormData({ ...formData, cedula: e.target.value })}
-    placeholder="001-1234567-8"
-    required
-    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-  />
-</div>
+      <div className="grid gap-2">
+        <Label htmlFor="cedula">Cédula</Label>
+        <Input
+          id="cedula"
+          value={formData.cedula}
+          onChange={(e) =>
+            setFormData({ ...formData, cedula: e.target.value })
+          }
+          placeholder="001-1234567-8"
+          required
+        />
+      </div>
+    </div>
 
-<div className="grid gap-2">
-  <label htmlFor="tandaLaborId" className="text-sm font-medium text-gray-700">
-    Tanda Laboral
-  </label>
-  <select
-    id="tandaLaborId"
-    value={formData.tandaLaborId}
-    onChange={(e) => setFormData({ ...formData, tandaLaborId: e.target.value })}
-    required
-    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-  >
-    <option value="">Seleccionar tanda</option>
-    {tandas.map((t) => (
-      <option key={t.id} value={t.id}>
-        {t.nombre}
-      </option>
-    ))}
-  </select>
-</div>
+    {/* Tanda + Usuario */}
+    <div className="grid grid-cols-2 gap-4">
+      <div className="grid gap-2">
+        <Label htmlFor="tandaLaborId">Tanda Laboral</Label>
+        <Select
+          value={String(formData.tandaLaborId)}
+          onValueChange={(value) =>
+            setFormData({ ...formData, tandaLaborId: Number(value) })
+          }
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Seleccionar tanda" />
+          </SelectTrigger>
+          <SelectContent>
+            {tandas.map((t) => (
+              <SelectItem key={t.id} value={String(t.id)}>
+                {t.nombre}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
-<div className="grid gap-2">
-  <label htmlFor="usuarioId" className="text-sm font-medium text-gray-700">
-    Usuario vinculado
-  </label>
-  <select
-    id="usuarioId"
-    value={formData.usuarioId}
-    onChange={(e) => setFormData({ ...formData, usuarioId: e.target.value })}
-    required
-    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-  >
-    <option value="">Seleccionar usuario</option>
-    {usuariosDisponibles.map((u) => (
-      <option key={u.id} value={u.id}>
-        {u.nombre} ({u.correo})
-      </option>
-    ))}
-  </select>
-</div>
+      <div className="grid gap-2">
+        <Label htmlFor="usuarioId">Usuario vinculado</Label>
+        <Select
+          value={String(formData.usuarioId)}
+          onValueChange={(value) =>
+            setFormData({ ...formData, usuarioId: Number(value) })
+          }
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Seleccionar usuario" />
+          </SelectTrigger>
+          <SelectContent>
+            {usuariosDisponibles.map((u) => (
+              <SelectItem key={u.id} value={String(u.id)}>
+                {u.nombre} ({u.correo})
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
+  </div>
 
-</div> {}
-
-<div className="flex justify-end gap-3 pt-4">
-  <button
-    type="button"
-    onClick={cerrarModal}
-    className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100"
-  >
-    Cancelar
-  </button>
-  <button
-    type="submit"
-    className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700"
-  >
-    {editando ? "Actualizar" : "Guardar"}
-  </button>
-</div>
+  <DialogFooter>
+    <Button type="button" variant="outline" onClick={cerrarModal}>
+      Cancelar
+    </Button>
+    <Button type="submit">
+      {editando ? "Actualizar" : "Guardar"}
+    </Button>
+  </DialogFooter>
 </form>
-</div>
-</div>
-)}
-</div>
-</Layout>
-  )
-}
+        </DialogContent>
+      </Dialog>
+      </div>
+    </Layout>
+  );
+};
 
-export default Medicos
+export default Medicos;

@@ -1,17 +1,23 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState } from "react";
 import {
   obtenerUsuarios,
   crearUsuario,
   editarUsuario,
   eliminarUsuario,
-} from "../../services/UsuariosServices"
-import { obtenerRoles } from "../../services/RolesServices"
-import Layout from "../../components/common/Layout"
-import { useAuth } from "../../context/AuthContext" 
+} from "../../services/UsuariosServices";
+import { obtenerRoles } from "../../services/RolesServices";
+import Layout from "../../components/common/Layout";
+import { useAuth } from "../../context/AuthContext";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { UserPen, Search, Plus, Edit, Trash2, Mail, Shield } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { X } from "lucide-react";
 
 const Usuarios = () => {
-  const { usuario } = useAuth()
-  const esMedico = usuario?.rol === "MEDICO" // valido por rol
+  const { usuario } = useAuth();
+  const esMedico = usuario?.rol === "MEDICO"; // valido por rol
 
   if (esMedico) {
     return (
@@ -20,263 +26,330 @@ const Usuarios = () => {
           No tienes permisos para acceder a esta sección.
         </div>
       </Layout>
-    )
+    );
   }
 
-  const [usuarios, setUsuarios] = useState([])
-  const [roles, setRoles] = useState([])
+  const [usuarios, setUsuarios] = useState([]);
+  const [roles, setRoles] = useState([]);
   const [formData, setFormData] = useState({
     correo: "",
     nombre: "",
     contrasena: "",
     rolId: "",
-  })
-  const [editandoUsuario, setEditandoUsuario] = useState(null)
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [error, setError] = useState(null)
-  const [cargando, setCargando] = useState(false)
+  });
+  const [editandoUsuario, setEditandoUsuario] = useState(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
-    cargarUsuarios()
-    cargarRoles()
-  }, [])
+    cargarUsuarios();
+    cargarRoles();
+  }, []);
 
   const cargarUsuarios = async () => {
-    setCargando(true)
-    setError(null)
     try {
-      const data = await obtenerUsuarios()
-      setUsuarios(data || [])
+      const data = await obtenerUsuarios();
+      setUsuarios(data || []);
     } catch (err) {
-      console.error("Error al cargar usuarios:", err)
-      setError("No se pudieron cargar los usuarios")
-    } finally {
-      setCargando(false)
+      console.error("Error al cargar usuarios:", err);
     }
-  }
+  };
 
   const cargarRoles = async () => {
     try {
-      const data = await obtenerRoles()
-      setRoles(data || [])
+      const data = await obtenerRoles();
+      setRoles(data || []);
     } catch (err) {
-      console.error("Error al cargar roles:", err)
+      console.error("Error al cargar roles:", err);
     }
-  }
+  };
 
   const abrirModal = (usuario = null) => {
-    setEditandoUsuario(usuario)
+    setEditandoUsuario(usuario);
     setFormData({
       correo: usuario?.correo || "",
       nombre: usuario?.nombre || "",
+      // IMPORTANTE: mantener la contraseña actual del backend en el estado
+      // para no vaciarla si no se cambia. El input la mostrará como puntitos.
       contrasena: usuario?.contrasena || "",
       rolId: usuario?.rolId?.toString() || "",
-    })
-    setIsModalOpen(true)
-  }
+    });
+    setIsFormOpen(true);
+  };
 
   const cerrarModal = () => {
-    setIsModalOpen(false)
-    setEditandoUsuario(null)
+    setIsFormOpen(false);
+    setEditandoUsuario(null);
     setFormData({
       correo: "",
       nombre: "",
       contrasena: "",
       rolId: "",
-    })
-  }
+    });
+  };
 
   const guardarUsuario = async (e) => {
-    e.preventDefault()
+    e.preventDefault();
+
     const payload = {
       correo: formData.correo,
       nombre: formData.nombre,
-      contrasena: formData.contrasena,
+      contrasena: formData.contrasena, // siempre se envía, como en tu lógica original
       rolId: formData.rolId,
-      estadoId: 1,
-    }
+      estadoId: 1, // se mantiene como activo desde frontend (tu lógica original)
+    };
 
     try {
       if (editandoUsuario) {
-        await editarUsuario(editandoUsuario.id, payload)
+        await editarUsuario(editandoUsuario.id, payload);
       } else {
-        await crearUsuario(payload)
+        await crearUsuario(payload);
       }
-      cerrarModal()
-      cargarUsuarios()
+      cerrarModal();
+      cargarUsuarios();
     } catch (err) {
-      console.error("Error al guardar usuario:", err)
-      alert("Hubo un error al guardar")
+      console.error("Error al guardar usuario:", err);
+      alert("Hubo un error al guardar");
     }
-  }
+  };
 
   const eliminar = async (id) => {
-    if (!window.confirm("¿Eliminar este usuario?")) return
+    if (!window.confirm("¿Eliminar este usuario?")) return;
     try {
-      await eliminarUsuario(id)
-      cargarUsuarios()
+      await eliminarUsuario(id);
+      cargarUsuarios();
     } catch (err) {
-      console.error("Error al eliminar:", err)
-      alert("Hubo un error al eliminar")
+      console.error("Error al eliminar:", err);
+      alert("Hubo un error al eliminar");
     }
-  }
+  };
 
-  const formatearFecha = (d) => d || "-"
+  const filteredUsuarios = usuarios.filter(
+    (u) =>
+      u.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      u.correo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      roles.find((r) => r.id === u.rolId)?.nombre.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const totalUsuarios = usuarios.length;
+  const usuariosActivos = usuarios.filter((u) => u.estadoId === 1).length;
+  const usuariosInactivos = usuarios.filter((u) => u.estadoId !== 1).length;
 
   return (
     <Layout>
-      <div className="min-h-screen bg-white/90 text-slate-700 rounded-xl p-6 shadow-lg backdrop-blur-md">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-slate-800">Usuarios</h2>
-          <button
+      <div className="container mx-auto p-6 space-y-6">
+        {/* HEADER */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
+              <UserPen className="h-8 w-8 text-primary" />
+              Usuarios del Sistema
+            </h1>
+            <p className="text-muted-foreground mt-1">Gestiona los usuarios y sus accesos</p>
+          </div>
+          <Button
+            className="gap-2"
             onClick={() => abrirModal()}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
           >
+            <Plus className="h-4 w-4" />
             Agregar Usuario
-          </button>
+          </Button>
         </div>
 
-        {cargando ? (
-          <div className="py-6 text-center text-slate-500">Cargando...</div>
-        ) : error ? (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            {error}
+        {/* CARDS DE MÉTRICAS */}
+        <div className="grid gap-4 md:grid-cols-3">
+          <div className="bg-card rounded-lg border border-border p-6">
+            <p className="text-sm font-medium text-muted-foreground">Total de Usuarios</p>
+            <p className="text-2xl font-bold text-foreground">{totalUsuarios}</p>
           </div>
-        ) : (
-          <table className="min-w-full table-auto">
-            <thead className="bg-slate-100">
-              <tr className="text-left">
-                <th className="px-4 py-3 font-semibold text-slate-700">Correo</th>
-                <th className="px-4 py-3 font-semibold text-slate-700">Nombre</th>
-                <th className="px-4 py-3 font-semibold text-slate-700">Rol</th>
-                <th className="px-4 py-3 font-semibold text-slate-700">Creación</th>
-                <th className="px-4 py-3 font-semibold text-slate-700">Actualización</th>
-                <th className="px-4 py-3 font-semibold text-slate-700">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {usuarios.length === 0 ? (
-                <tr>
-                  <td colSpan="6" className="px-4 py-6 text-center text-slate-500">
-                    No hay usuarios registrados
-                  </td>
-                </tr>
-              ) : (
-                usuarios.map((u) => (
-                  <tr key={u.id} className="border-t border-slate-200 hover:bg-slate-50">
-                    <td className="px-4 py-3">{u.correo}</td>
-                    <td className="px-4 py-3">{u.nombre}</td>
-                    <td className="px-4 py-3">{roles.find(r => r.id === u.rolId)?.nombre || "-"}</td>
-                    <td className="px-4 py-3 text-slate-600">{formatearFecha(u.fechaCreacion)}</td>
-                    <td className="px-4 py-3 text-slate-600">{formatearFecha(u.fechaActualizacion)}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => abrirModal(u)}
-                          className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded text-sm transition-colors"
-                        >
-                          Editar
-                        </button>
-                        <button
-                          onClick={() => eliminar(u.id)}
-                          className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm transition-colors"
-                        >
-                          Eliminar
-                        </button>
+        </div>
+
+        {/* BUSCADOR */}
+        <div className="bg-card rounded-lg border border-border p-6">
+          <div className="relative mb-4">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar usuario por nombre, correo o rol..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+
+          {/* GRID DE USUARIOS */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {filteredUsuarios.map((u) => (
+              <div
+                key={u.id}
+                className="bg-background border border-border rounded-lg p-4 hover:shadow-md transition-shadow"
+              >
+                <div className="flex items-start justify-between mb-3">
+                  {/* Avatar */}
+                  <div className="flex items-center gap-3">
+                    <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                      <span className="text-lg font-semibold text-primary">
+                        {u.nombre[0]}
+                      </span>
+                    </div>
+
+                    <div>
+                      <h3 className="font-semibold text-foreground">{u.nombre}</h3>
+                      <div className="flex items-center gap-1 mt-1">
+                        <Shield className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">
+                          {roles.find((r) => r.id === u.rolId)?.nombre || "-"}
+                        </span>
                       </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        )}
+                    </div>
+                  </div>
 
-        {isModalOpen && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl w-full max-w-xl p-6 shadow-xl overflow-y-auto max-h-[90vh]">
-              <h2 className="text-2xl font-bold mb-2">
-                {editandoUsuario ? "Editar Usuario" : "Nuevo Usuario"}
+                  {/* Estado */}
+                  <span
+                    className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      u.estadoId === 1
+                        ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                        : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                    }`}
+                  >
+                    {u.estadoId === 1 ? "Activo" : "Inactivo"}
+                  </span>
+                </div>
+
+                {/* Contacto */}
+                <div className="space-y-2 mb-4">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Mail className="h-4 w-4" />
+                    {u.correo}
+                  </div>
+                </div>
+
+                {/* Fechas */}
+                <div className="text-xs text-muted-foreground mb-3">
+                  <div>Creado: {u.fechaCreacion || "-"}</div>
+                  <div>Actualizado: {u.fechaActualizacion || "-"}</div>
+                </div>
+
+                {/* Botones */}
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => abrirModal(u)}
+                  >
+                    <Edit className="h-4 w-4 mr-1" /> Editar
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-red-500"
+                    onClick={() => eliminar(u.id)}
+                  >
+                    <Trash2 className="h-4 w-4" /> Eliminar
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {filteredUsuarios.length === 0 && (
+            <div className="py-8 text-center text-muted-foreground">
+              No se encontraron usuarios que coincidan con la búsqueda
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* FORM MODAL */}
+      {isFormOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+          <div className="bg-card border border-border rounded-lg shadow-lg w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
+            {/* HEADER */}
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-foreground">
+                {editandoUsuario ? "Editar Usuario" : "Agregar Usuario"}
               </h2>
-              <p className="text-slate-600 mb-6">
-                {editandoUsuario
-                  ? "Modifica la información del usuario"
-                  : "Agrega un nuevo usuario al sistema"}
-              </p>
+              <Button variant="ghost" size="icon" onClick={cerrarModal}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
 
-              <form onSubmit={guardarUsuario} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Correo</label>
-                  <input
-                    type="email"
-                    value={formData.correo}
-                    onChange={(e) => setFormData({ ...formData, correo: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg"
-                    required
-                  />
-                </div>
+            {/* FORM */}
+            <form onSubmit={guardarUsuario} className="space-y-4">
+              {/* Correo */}
+              <div>
+                <Label htmlFor="correo">Correo Electrónico</Label>
+                <Input
+                  id="correo"
+                  type="email"
+                  value={formData.correo}
+                  onChange={(e) => setFormData({ ...formData, correo: e.target.value })}
+                  placeholder="usuario@apecare.com"
+                  required
+                />
+              </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Nombre</label>
-                  <input
-                    type="text"
-                    value={formData.nombre}
-                    onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg"
-                    required
-                  />
-                </div>
+              {/* Nombre */}
+              <div>
+                <Label htmlFor="nombre">Nombre</Label>
+                <Input
+                  id="nombre"
+                  type="text"
+                  value={formData.nombre}
+                  onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                  placeholder="Ej: Juan Pérez"
+                  required
+                />
+              </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Contraseña</label>
-                  <input
-                    type="password"
-                    value={formData.contrasena}
-                    onChange={(e) => setFormData({ ...formData, contrasena: e.target.value })}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg"
-  required
-/>
-</div>
+              {/* Contraseña (siempre presente) */}
+              <div>
+                <Label htmlFor="contrasena">Contraseña</Label>
+                <Input
+                  id="contrasena"
+                  type="password"
+                  value={formData.contrasena}
+                  onChange={(e) => setFormData({ ...formData, contrasena: e.target.value })}
+                  placeholder="Contraseña"
+                  required
+                />
+              </div>
 
-<div>
-  <label className="block text-sm font-medium text-slate-700 mb-1">Rol</label>
-  <select
-    value={formData.rolId}
-    onChange={(e) => setFormData({ ...formData, rolId: e.target.value })}
-    className="w-full px-3 py-2 border border-slate-300 rounded-lg"
-    required
-  >
-    <option value="">Seleccionar rol</option>
-    {roles.map((rol) => (
-      <option key={rol.id} value={rol.id}>
-        {rol.nombre}
-      </option>
-    ))}
-  </select>
-</div>
+              {/* Rol */}
+              <div>
+                <Label htmlFor="rolId">Rol</Label>
+                <select
+                  id="rolId"
+                  value={formData.rolId}
+                  onChange={(e) => setFormData({ ...formData, rolId: e.target.value })}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-ring"
+                  required
+                >
+                  <option value="">Seleccionar rol...</option>
+                  {roles.map((rol) => (
+                    <option key={rol.id} value={rol.id}>
+                      {rol.nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-<div className="flex justify-end gap-3 pt-4">
-  <button
-    type="button"
-    onClick={cerrarModal}
-    className="px-4 py-2 bg-slate-500 hover:bg-slate-600 text-white rounded-lg"
-  >
-    Cancelar
-  </button>
-  <button
-    type="submit"
-    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
-  >
-    {editandoUsuario ? "Actualizar" : "Guardar"}
-  </button>
-</div>
-</form>
-</div>
-</div>
-)}
-</div>
-</Layout>
-)
-}
+              {/* Botones */}
+              <div className="flex gap-2 pt-4">
+                <Button type="button" variant="outline" className="flex-1" onClick={cerrarModal}>
+                  Cancelar
+                </Button>
+                <Button type="submit" className="flex-1">
+                  {editandoUsuario ? "Actualizar" : "Guardar"}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </Layout>
+  );
+};
 
-export default Usuarios
+export default Usuarios;
