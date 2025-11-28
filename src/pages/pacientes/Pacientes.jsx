@@ -1,89 +1,112 @@
-import { useEffect, useState } from "react"
+import React, { useEffect, useState } from "react";
+
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+
+import { Users, Plus, Search, Edit, Trash2 } from "lucide-react";
+
+import Layout from "../../components/common/Layout";
 import {
   obtenerPacientes,
   crearPaciente,
   editarPaciente,
   eliminarPaciente,
-} from "../../services/PacientesServices"
-import { obtenerTipoPacientes } from "../../services/TipoPacientesServices"
-import Layout from "../../components/common/Layout"
+} from "../../services/PacientesServices";
+import { obtenerTipoPacientes } from "../../services/TipoPacientesServices";
 
 const Pacientes = () => {
-  const [pacientes, setPacientes] = useState([])
-  const [tiposPaciente, setTiposPaciente] = useState([])
+  const [pacientes, setPacientes] = useState([]);
+  const [tiposPaciente, setTiposPaciente] = useState([]);
   const [formData, setFormData] = useState({
     nombre: "",
     cedula: "",
     numeroCarnet: "",
     tipoPacienteId: "",
     edad: 0,
-  })
-  const [editandoPaciente, setEditandoPaciente] = useState(null)
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [error, setError] = useState(null)
-  const [cargando, setCargando] = useState(false)
+  });
+  const [editandoPaciente, setEditandoPaciente] = useState(null);
+  const [formOpen, setFormOpen] = useState(false);
+  const [error, setError] = useState(null);
+  const [cargando, setCargando] = useState(false);
 
   useEffect(() => {
-    cargarPacientes()
-    cargarTiposPaciente()
-  }, [])
+    cargarPacientes();
+    cargarTiposPaciente();
+  }, []);
 
   const cargarPacientes = async () => {
-    setCargando(true)
-    setError(null)
+    setCargando(true);
+    setError(null);
     try {
-      const data = await obtenerPacientes()
-      setPacientes(data || [])
+      const data = await obtenerPacientes();
+      setPacientes(data || []);
     } catch (err) {
-      console.error("Error al cargar pacientes:", err)
-      setError("No se pudieron cargar los pacientes")
+      console.error("Error al cargar pacientes:", err);
+      setError("No se pudieron cargar los pacientes");
     } finally {
-      setCargando(false)
+      setCargando(false);
     }
-  }
+  };
 
   const cargarTiposPaciente = async () => {
     try {
-      const data = await obtenerTipoPacientes()
-      setTiposPaciente(data || [])
+      const data = await obtenerTipoPacientes();
+      setTiposPaciente(data || []);
     } catch (err) {
-      console.error("Error al cargar tipos de paciente:", err)
+      console.error("Error al cargar tipos de paciente:", err);
     }
-  }
+  };
 
   const abrirModal = (paciente = null) => {
-    setEditandoPaciente(paciente)
+    setEditandoPaciente(paciente);
     setFormData({
       nombre: paciente?.nombre || "",
       cedula: paciente?.cedula || "",
       numeroCarnet: paciente?.numeroCarnet || "",
       tipoPacienteId: paciente?.tipoPacienteId?.toString() || "",
       edad: paciente?.edad || 0,
-    })
-    setIsModalOpen(true)
-  }
+    });
+    setFormOpen(true);
+  };
 
   const cerrarModal = () => {
-    setIsModalOpen(false)
-    setEditandoPaciente(null)
+    setFormOpen(false);
+    setEditandoPaciente(null);
     setFormData({
       nombre: "",
       cedula: "",
       numeroCarnet: "",
       tipoPacienteId: "",
       edad: 0,
-    })
-  }
+    });
+  };
 
   const tipoSeleccionado = tiposPaciente.find(
     (t) => t.id === parseInt(formData.tipoPacienteId)
-  )
+  );
 
   const guardarPaciente = async (e) => {
-    e.preventDefault()
+    e.preventDefault();
     if (formData.edad < 0) {
-      alert("La edad no puede ser negativa")
-      return
+      alert("La edad no puede ser negativa");
+      return;
     }
 
     const payload = {
@@ -95,208 +118,248 @@ const Pacientes = () => {
           : null,
       tipoPacienteId: formData.tipoPacienteId,
       edad: formData.edad,
-    }
+    };
 
     try {
       if (editandoPaciente) {
-        await editarPaciente(editandoPaciente.id, payload)
+        await editarPaciente(editandoPaciente.id, payload);
       } else {
-        await crearPaciente(payload)
+        await crearPaciente(payload);
       }
-      cerrarModal()
-      cargarPacientes()
+      cerrarModal();
+      cargarPacientes();
     } catch (err) {
-      console.error("Error al guardar paciente:", err)
-      alert("Hubo un error al guardar")
+      console.error("Error al guardar paciente:", err);
+      alert("Hubo un error al guardar");
     }
-  }
+  };
 
   const eliminar = async (id) => {
-    if (!window.confirm("¿Eliminar este paciente?")) return
+    if (!window.confirm("¿Eliminar este paciente?")) return;
     try {
-      await eliminarPaciente(id)
-      cargarPacientes()
+      await eliminarPaciente(id);
+      cargarPacientes();
     } catch (err) {
-      console.error("Error al eliminar:", err)
-      alert("Hubo un error al eliminar")
+      console.error("Error al eliminar:", err);
+      alert("Hubo un error al eliminar");
     }
-  }
+  };
 
-  const formatearFecha = (d) => d || "-"
+  const formatearFecha = (d) => (d ? d.split("T")[0] : "-");
 
   return (
     <Layout>
-      <div className="min-h-screen bg-white/90 text-slate-700 rounded-xl p-6 shadow-lg backdrop-blur-md">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-slate-800">Pacientes</h2>
-          <button
-            onClick={() => abrirModal()}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
-          >
-            Agregar Paciente
-          </button>
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="mb-8 flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+            <Users className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Pacientes</h1>
+            <p className="text-muted-foreground">
+              Gestiona la información de los pacientes
+            </p>
+          </div>
         </div>
 
-        {cargando ? (
-          <div className="py-6 text-center text-slate-500">Cargando...</div>
-        ) : error ? (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            {error}
+        {/* Actions Bar */}
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input placeholder="Buscar paciente..." className="pl-10" />
           </div>
+
+          <Button className="gap-2" onClick={() => abrirModal()}>
+            <Plus className="h-4 w-4" />
+            Nuevo Paciente
+          </Button>
+        </div>
+
+        {/* Error or Loading */}
+        {cargando ? (
+          <p className="text-muted-foreground">Cargando pacientes...</p>
+        ) : error ? (
+          <p className="text-destructive">{error}</p>
+        ) : pacientes.length === 0 ? (
+          <p className="text-muted-foreground">No hay pacientes registrados.</p>
         ) : (
-          <table className="min-w-full table-auto">
-            <thead className="bg-slate-100">
-              <tr className="text-left">
-                <th className="px-4 py-3 font-semibold text-slate-700">Nombre</th>
-                <th className="px-4 py-3 font-semibold text-slate-700">Cédula</th>
-                <th className="px-4 py-3 font-semibold text-slate-700">Carnet</th>
-                <th className="px-4 py-3 font-semibold text-slate-700">Edad</th>
-                <th className="px-4 py-3 font-semibold text-slate-700">Fecha de Registro</th>
-                <th className="px-4 py-3 font-semibold text-slate-700">Fecha de Actualizacion</th>
-                <th className="px-4 py-3 font-semibold text-slate-700">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pacientes.length === 0 ? (
-                <tr>
-                  <td colSpan="7" className="px-4 py-6 text-center text-slate-500">
-                    No hay pacientes registrados
-                  </td>
-                </tr>
-              ) : (
-                pacientes.map((p) => (
-                  <tr key={p.id} className="border-t border-slate-200 hover:bg-slate-50">
-                    <td className="px-4 py-3">{p.nombre}</td>
-                    <td className="px-4 py-3">{p.cedula}</td>
-                    <td className="px-4 py-3">{p.numeroCarnet || "-"}</td>
-                    <td className="px-4 py-3">{p.edad}</td>
-                    <td className="px-4 py-3 text-slate-600">{formatearFecha(p.fechaRegistro)}</td>
-                    <td className="px-4 py-3 text-slate-600">{formatearFecha(p.fechaActualizacion)}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => abrirModal(p)}
-                          className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded text-sm transition-colors"
-                        >
-                          Editar
-                        </button>
-                        <button
-                          onClick={() => eliminar(p.id)}
-                          className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm transition-colors"
-                        >
-                          Eliminar
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {pacientes.map((p) => (
+              <Card key={p.id} className="hover:shadow-md transition-shadow">
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <CardTitle className="text-lg">{p.nombre}</CardTitle>
+                      <CardDescription>{p.cedula}</CardDescription>
+                    </div>
+                    <Badge variant="secondary">
+                      {tiposPaciente.find((t) => t.id === p.tipoPacienteId)?.nombre || "-"}
+                    </Badge>
+                  </div>
+                </CardHeader>
+
+                <CardContent>
+                  <div className="space-y-3 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Edad:</span>
+                      <span className="font-medium">{p.edad} años</span>
+                    </div>
+
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Registro: {formatearFecha(p.fechaRegistro)}</span>
+                      <span>Actualización: {formatearFecha(p.fechaActualizacion)}</span>
+                    </div>
+
+                    {/* Botones */}
+                    <div className="flex gap-2 pt-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 gap-2 bg-transparent"
+                        onClick={() => abrirModal(p)}
+                      >
+                        <Edit className="h-3 w-3" />
+                        Editar
+                      </Button>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 gap-2 text-destructive bg-transparent hover:text-destructive"
+                        onClick={() => eliminar(p.id)}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                        Eliminar
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         )}
 
-        {isModalOpen && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl w-full max-w-xl p-6 shadow-xl overflow-y-auto max-h-[90vh]">
-              <h2 className="text-2xl font-bold mb-2">
+        {/* Modal Form */}
+        <Dialog open={formOpen} onOpenChange={setFormOpen}>
+          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>
                 {editandoPaciente ? "Editar Paciente" : "Nuevo Paciente"}
-              </h2>
-              <p className="text-slate-600 mb-6">
+              </DialogTitle>
+              <DialogDescription>
                 {editandoPaciente
                   ? "Modifica la información del paciente"
                   : "Agrega un nuevo paciente al sistema"}
-              </p>
+              </DialogDescription>
+            </DialogHeader>
 
-              <form onSubmit={guardarPaciente} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Nombre</label>
-                  <input
-                    type="text"
+            <form onSubmit={guardarPaciente}>
+              <div className="grid gap-4 py-4">
+                {/* Nombre */}
+                <div className="grid gap-2">
+                  <Label htmlFor="nombre">Nombre Completo</Label>
+                  <Input
+                    id="nombre"
                     value={formData.nombre}
-                    onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+                                        onChange={(e) =>
+                      setFormData({ ...formData, nombre: e.target.value })
+                    }
+                    placeholder="Ej: María González"
                     required
                   />
                 </div>
 
+                {/* Cédula + Edad */}
                 <div className="grid grid-cols-2 gap-4">
-  <div>
-    <label className="block text-sm font-medium text-slate-700 mb-1">Cédula</label>
-    <input
-      type="text"
-      value={formData.cedula}
-      onChange={(e) => setFormData({ ...formData, cedula: e.target.value })}
-      className="w-full px-3 py-2 border border-slate-300 rounded-lg"
-      required
-    />
-  </div>
-  <div>
-    <label className="block text-sm font-medium text-slate-700 mb-1">Edad</label>
-    <input
-      type="number"
-      min={0}
-      value={formData.edad}
-      onChange={(e) =>
-        setFormData({ ...formData, edad: Math.max(0, Number(e.target.value)) })
-      }
-      className="w-full px-3 py-2 border border-slate-300 rounded-lg"
-      required
-    />
-  </div>
-</div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="cedula">Cédula</Label>
+                    <Input
+                      id="cedula"
+                      value={formData.cedula}
+                      onChange={(e) =>
+                        setFormData({ ...formData, cedula: e.target.value })
+                      }
+                      placeholder="001-1234567-8"
+                      required
+                    />
+                  </div>
 
-<div>
-  <label className="block text-sm font-medium text-slate-700 mb-1">Tipo de Paciente</label>
-  <select
-    value={formData.tipoPacienteId}
-    onChange={(e) => setFormData({ ...formData, tipoPacienteId: e.target.value })}
-    className="w-full px-3 py-2 border border-slate-300 rounded-lg"
-    required
-  >
-    <option value="">Seleccionar tipo</option>
-    {tiposPaciente.map((tipo) => (
-      <option key={tipo.id} value={tipo.id}>
-        {tipo.nombre}
-      </option>
-    ))}
-  </select>
-</div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="edad">Edad</Label>
+                    <Input
+                      id="edad"
+                      type="number"
+                      min={0}
+                      value={formData.edad}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          edad: Math.max(0, Number(e.target.value)),
+                        })
+                      }
+                      placeholder="0"
+                      required
+                    />
+                  </div>
+                </div>
 
-{tipoSeleccionado?.nombre?.toLowerCase() === "estudiante" && (
-  <div>
-    <label className="block text-sm font-medium text-slate-700 mb-1">Número de Carnet</label>
-    <input
-      type="text"
-      value={formData.numeroCarnet}
-      onChange={(e) => setFormData({ ...formData, numeroCarnet: e.target.value })}
-      className="w-full px-3 py-2 border border-slate-300 rounded-lg"
-      required
-    />
-  </div>
-)}
+                {/* Tipo de Paciente */}
+                <div className="grid gap-2">
+                  <Label htmlFor="tipoPaciente">Tipo de Paciente</Label>
+                  <select
+                    id="tipoPaciente"
+                    value={formData.tipoPacienteId}
+                    onChange={(e) =>
+                      setFormData({ ...formData, tipoPacienteId: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+                    required
+                  >
+                    <option value="">Seleccionar tipo</option>
+                    {tiposPaciente.map((tipo) => (
+                      <option key={tipo.id} value={tipo.id}>
+                        {tipo.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-<div className="flex justify-end gap-3 pt-4">
-  <button
-    type="button"
-    onClick={cerrarModal}
-    className="px-4 py-2 bg-slate-500 hover:bg-slate-600 text-white rounded-lg"
-  >
-    Cancelar
-  </button>
-  <button
-    type="submit"
-    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
-  >
-    {editandoPaciente ? "Actualizar" : "Guardar"}
-  </button>
-</div>
-</form>
-</div>
-</div>
-)}
-</div>
-</Layout>
-)
-}
+                {/* Número de Carnet (solo estudiantes) */}
+                {tipoSeleccionado?.nombre?.toLowerCase() === "estudiante" && (
+                  <div className="grid gap-2">
+                    <Label htmlFor="numeroCarnet">Número de Carnet</Label>
+                    <Input
+                      id="numeroCarnet"
+                      value={formData.numeroCarnet}
+                      onChange={(e) =>
+                        setFormData({ ...formData, numeroCarnet: e.target.value })
+                      }
+                      placeholder="Carnet estudiantil"
+                      required
+                    />
+                  </div>
+                )}
+              </div>
 
-export default Pacientes
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={cerrarModal}
+                >
+                  Cancelar
+                </Button>
+                <Button type="submit">
+                  {editandoPaciente ? "Actualizar" : "Guardar"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </Layout>
+  );
+};
+
+export default Pacientes;

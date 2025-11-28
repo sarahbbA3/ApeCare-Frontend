@@ -1,214 +1,264 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
+
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
+import { Tag, Plus, Search, Edit, Trash2 } from "lucide-react";
+
+import Layout from "../../components/common/Layout";
 import {
   obtenerMarcas,
   crearMarca,
   editarMarca,
   eliminarMarca,
 } from "../../services/MarcasServices";
-import Layout from "../../components/common/Layout";
 
 const Marcas = () => {
-  const [listMarcas, setListMarcas] = useState([]);
-  const [cargando, setCargando] = useState(false);
+  const [marcas, setMarcas] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editandoMarca, setEditandoMarca] = useState(null);
+  const [formOpen, setFormOpen] = useState(false);
+  const [formMode, setFormMode] = useState("create");
+  const [selectedItem, setSelectedItem] = useState(null);
 
-  const [nombre, setNombre] = useState("");
-  const [descripcion, setDescripcion] = useState("");
+  const [formData, setFormData] = useState({
+    nombre: "",
+    descripcion: "",
+  });
 
   useEffect(() => {
     cargarMarcas();
   }, []);
 
   const cargarMarcas = async () => {
-    setCargando(true);
+    setLoading(true);
     setError(null);
     try {
       const data = await obtenerMarcas();
-      setListMarcas(data || []);
+      setMarcas(data || []);
     } catch (err) {
-      console.error("Error: ", err);
-      setError("Hubo un error cargando los datos");
+      console.error("Error cargando marcas:", err);
+      setError("Hubo un error cargando las marcas.");
     } finally {
-      setCargando(false);
+      setLoading(false);
     }
   };
 
-  const formatearFecha = (d) => d || "-";
-
-  const abrirModal = (marca = null) => {
-    setEditandoMarca(marca);
-    setNombre(marca?.nombre || "");
-    setDescripcion(marca?.descripcion || "");
-    setIsModalOpen(true);
+  const handleCreate = () => {
+    setFormMode("create");
+    setSelectedItem(null);
+    setFormData({ nombre: "", descripcion: "" });
+    setFormOpen(true);
   };
 
-  const cerrarModal = () => {
-    setIsModalOpen(false);
-    setEditandoMarca(null);
-    setNombre("");
-    setDescripcion("");
+  const handleEdit = (item) => {
+    setFormMode("edit");
+    setSelectedItem(item);
+    setFormData({
+      nombre: item.nombre,
+      descripcion: item.descripcion,
+    });
+    setFormOpen(true);
   };
 
-  const guardarMarca = async () => {
-    const payload = {
-      nombre,
-      descripcion,
-      estadoId: 1,
-    };
-    try {
-      if (editandoMarca) {
-        await editarMarca(editandoMarca.id, payload);
-      } else {
-        await crearMarca(payload);
-      }
-      cerrarModal();
-      cargarMarcas();
-    } catch (err) {
-      console.error("Error al guardar:", err);
-      alert("Hubo un error al guardar la marca");
-    }
-  };
-
-  const eliminar = async (id) => {
-    if (!window.confirm("¿Estás segura que deseas eliminar esta marca?")) return;
+  const handleDelete = async (id) => {
+    if (!window.confirm("¿Seguro que deseas eliminar esta marca?")) return;
     try {
       await eliminarMarca(id);
       cargarMarcas();
     } catch (err) {
-      console.error("Error al eliminar:", err);
-      alert("Hubo un error al eliminar la marca");
+      console.error("Error eliminando marca:", err);
     }
   };
 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const payload = {
+      nombre: formData.nombre,
+      descripcion: formData.descripcion,
+      estadoId: 1,
+    };
+    try {
+      if (formMode === "edit" && selectedItem) {
+        await editarMarca(selectedItem.id, payload);
+      } else {
+        await crearMarca(payload);
+      }
+      setFormOpen(false);
+      cargarMarcas();
+    } catch (err) {
+      console.error("Error guardando marca:", err);
+    }
+  };
+
+  const formatearFecha = (d) => (d ? d.split("T")[0] : "-");
+
   return (
     <Layout>
-      <div className="min-h-screen overflow-auto bg-white/90 text-slate-700 rounded-xl p-6 shadow-lg backdrop-blur-md">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-slate-800">Marcas Farmacéuticas</h2>
-          <button
-            onClick={() => abrirModal()}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
-          >
-            Agregar Marca
-          </button>
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="mb-8 flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+            <Tag className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Marcas Farmacéuticas</h1>
+            <p className="text-muted-foreground">
+              Gestiona las marcas de medicamentos
+            </p>
+          </div>
         </div>
 
-        {cargando ? (
-          <div className="flex justify-center items-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <span className="ml-2">Cargando...</span>
+        {/* Actions Bar */}
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input placeholder="Buscar marca..." className="pl-10" />
           </div>
+
+          <Button className="gap-2" onClick={handleCreate}>
+            <Plus className="h-4 w-4" />
+            Nueva Marca
+          </Button>
+        </div>
+
+        {/* Error or Loading */}
+        {loading ? (
+          <p className="text-muted-foreground">Cargando marcas...</p>
         ) : error ? (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            {error}
-          </div>
+          <p className="text-destructive">{error}</p>
+        ) : marcas.length === 0 ? (
+          <p className="text-muted-foreground">No hay marcas registradas.</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full table-auto">
-              <thead className="bg-slate-100">
-                <tr className="text-left">
-                  <th className="px-4 py-3 font-semibold text-slate-700">Nombre</th>
-                  <th className="px-4 py-3 font-semibold text-slate-700">Descripción</th>
-                  <th className="px-4 py-3 font-semibold text-slate-700">Fecha de Creación</th>
-                  <th className="px-4 py-3 font-semibold text-slate-700">Fecha de Actualización</th>
-                  <th className="px-4 py-3 font-semibold text-slate-700">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {listMarcas.length === 0 ? (
-                  <tr>
-                    <td colSpan="5" className="px-4 py-6 text-center text-slate-500">
-                      No se encontraron marcas disponibles
-                    </td>
-                  </tr>
-                ) : (
-                  listMarcas.map((marca) => (
-                    <tr key={marca.id} className="border-t border-slate-200 hover:bg-slate-50">
-                      <td className="px-4 py-3 font-medium">{marca.nombre}</td>
-                      <td className="px-4 py-3 max-w-md">
-                        <div className="line-clamp-2">{marca.descripcion}</div>
-                      </td>
-                      <td className="px-4 py-3 text-slate-600">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {marcas.map((marca) => (
+              <Card key={marca.id} className="hover:shadow-md transition-shadow">
+                <CardHeader>
+                  <CardTitle>{marca.nombre}</CardTitle>
+                  <CardDescription>{marca.descripcion}</CardDescription>
+                </CardHeader>
+
+                <CardContent>
+                  <div className="space-y-3 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Creación:</span>
+                      <span className="font-medium text-xs">
                         {formatearFecha(marca.fechaCreacion)}
-                      </td>
-                      <td className="px-4 py-3 text-slate-600">
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Actualización:</span>
+                      <span className="font-medium text-xs">
                         {formatearFecha(marca.fechaActualizacion)}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => abrirModal(marca)}
-                            className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded text-sm transition-colors"
-                          >
-                            Editar
-                          </button>
-                          <button
-                            onClick={() => eliminar(marca.id)}
-                            className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm transition-colors"
-                          >
-                            Eliminar
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                      </span>
+                    </div>
+
+                    {/* Botones */}
+                    <div className="flex gap-2 pt-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 gap-2 bg-transparent"
+                        onClick={() => handleEdit(marca)}
+                      >
+                        <Edit className="h-3 w-3" />
+                        Editar
+                      </Button>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 gap-2 text-destructive bg-transparent hover:text-destructive"
+                        onClick={() => handleDelete(marca.id)}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                        Eliminar
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         )}
 
-        {isModalOpen && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl w-full max-w-md p-6">
-              <h3 className="text-xl font-semibold mb-4">
-                {editandoMarca ? "Editar Marca" : "Agregar Marca"}
-              </h3>
+        {/* Modal Form */}
+        <Dialog open={formOpen} onOpenChange={setFormOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>
+                {formMode === "create" ? "Nueva Marca" : "Editar Marca"}
+              </DialogTitle>
+              <DialogDescription>
+                {formMode === "create"
+                  ? "Agrega una nueva marca farmacéutica al sistema"
+                  : "Modifica la información de la marca"}
+              </DialogDescription>
+            </DialogHeader>
 
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Nombre</label>
-                  <input
-                    type="text"
-                    value={nombre}
-                    onChange={(e) => setNombre(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Nombre de la marca"
+            <form onSubmit={handleSubmit}>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="nombre">Nombre</Label>
+                  <Input
+                    id="nombre"
+                    value={formData.nombre}
+                    onChange={(e) =>
+                      setFormData({ ...formData, nombre: e.target.value })
+                    }
+                    placeholder="Ej: Pfizer"
+                    required
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Descripción</label>
-                  <textarea
-                    value={descripcion}
-                    onChange={(e) => setDescripcion(e.target.value)}
-                    rows="3"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Descripción de la marca"
+                <div className="grid gap-2">
+                  <Label htmlFor="descripcion">Descripción</Label>
+                  <Textarea
+                    id="descripcion"
+                    rows={4}
+                    value={formData.descripcion}
+                    onChange={(e) =>
+                      setFormData({ ...formData, descripcion: e.target.value })
+                    }
+                    placeholder="Describe la marca farmacéutica..."
+                    required
                   />
                 </div>
               </div>
 
-              <div className="flex gap-3 mt-6">
-                <button
-                  onClick={cerrarModal}
-                  className="flex-1 px-4 py-2 bg-slate-500 hover:bg-slate-600 text-white rounded-lg transition-colors"
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setFormOpen(false)}
                 >
                   Cancelar
-                </button>
-                <button
-                  onClick={guardarMarca}
-                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-                >
-                  {editandoMarca ? "Actualizar" : "Guardar"}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+                </Button>
+                <Button type="submit">
+                  {formMode === "create" ? "Crear" : "Guardar Cambios"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
     </Layout>
   );
