@@ -45,9 +45,8 @@ const Ubicaciones = () => {
   const [ubicaciones, setUbicaciones] = useState([]);
   const [celdas, setCeldas] = useState([]);
   const [tiposFarmaco, setTiposFarmaco] = useState([]);
-
   const [medicamentos, setMedicamentos] = useState([]);
-  const [productosPorUbicacion, setProductosPorUbicacion] = useState({}); // { ubicacionId: count }
+  const [productosPorUbicacion, setProductosPorUbicacion] = useState({});
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -63,13 +62,13 @@ const Ubicaciones = () => {
     celdaId: "",
   });
 
+  const [searchTerm, setSearchTerm] = useState("");
+
   useEffect(() => {
-    // Carga inicial
     cargarTodo();
   }, []);
 
   useEffect(() => {
-    // Recalcular conteo de productos por ubicación cuando cambien los medicamentos
     actualizarConteoProductos(medicamentos);
   }, [medicamentos]);
 
@@ -163,6 +162,30 @@ const Ubicaciones = () => {
 
   const formatearFecha = (d) => (d ? d.split("T")[0] : "-");
 
+  // 👈 Filtrado dinámico extendido (nombre, descripción, tipo de fármaco)
+  const filteredUbicaciones = ubicaciones.filter((u) => {
+    const nombre = u.nombre?.toLowerCase() || "";
+    const descripcion = u.descripcion?.toLowerCase() || "";
+    const tipoFarmaco = u.tipoFarmacoNombre?.toLowerCase() || "";
+
+    return (
+      nombre.includes(searchTerm.toLowerCase()) ||
+      descripcion.includes(searchTerm.toLowerCase()) ||
+      tipoFarmaco.includes(searchTerm.toLowerCase())
+    );
+  });
+
+  // 👈 Filtrar celdas disponibles
+  const usadas = ubicaciones.map((u) => u.celdaId);
+  let celdasDisponibles = celdas.filter((c) => !usadas.includes(c.id));
+
+  if (formMode === "edit" && selectedItem?.celdaId) {
+    const celdaActual = celdas.find((c) => c.id === selectedItem.celdaId);
+    if (celdaActual && !celdasDisponibles.some((d) => d.id === celdaActual.id)) {
+      celdasDisponibles = [celdaActual, ...celdasDisponibles];
+    }
+  }
+
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
@@ -183,7 +206,12 @@ const Ubicaciones = () => {
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="Buscar ubicación..." className="pl-10" />
+            <Input
+              placeholder="Buscar ubicación por nombre, descripción o tipo de fármaco..."
+              className="pl-10"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
 
           <Button className="gap-2" onClick={handleCreate}>
@@ -197,11 +225,19 @@ const Ubicaciones = () => {
           <p className="text-muted-foreground">Cargando ubicaciones...</p>
         ) : error ? (
           <p className="text-destructive">{error}</p>
-        ) : ubicaciones.length === 0 ? (
-          <p className="text-muted-foreground">No hay ubicaciones registradas.</p>
+        ) : filteredUbicaciones.length === 0 ? (
+          <div className="text-center py-12">
+            <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">
+              No se encontraron ubicaciones
+            </h3>
+            <p className="text-muted-foreground">
+              Intenta con otros términos de búsqueda
+            </p>
+          </div>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {ubicaciones.map((u) => (
+            {filteredUbicaciones.map((u) => (
               <Card key={u.id} className="hover:shadow-md transition-shadow">
                 <CardHeader>
                   <div className="flex items-start justify-between">
@@ -221,7 +257,7 @@ const Ubicaciones = () => {
                       <span className="font-medium">{u.tipoFarmacoNombre}</span>
                     </div>
 
-                    {/* Jerarquía: Estante → Tramo → Celda */}
+                    {/* Jerarquía */}
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Ubicación:</span>
                       <span className="font-medium text-xs">
@@ -337,7 +373,7 @@ const Ubicaciones = () => {
                       <SelectValue placeholder="Seleccionar celda" />
                     </SelectTrigger>
                     <SelectContent>
-                      {celdas.map((c) => (
+                      {celdasDisponibles.map((c) => (
                         <SelectItem key={c.id} value={String(c.id)}>
                           {`${c.estanteNombre || "-"} → ${c.tramoNombre || "-"} → ${c.nombre}`}
                         </SelectItem>

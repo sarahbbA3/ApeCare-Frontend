@@ -46,6 +46,8 @@ const Pacientes = () => {
   const [error, setError] = useState(null);
   const [cargando, setCargando] = useState(false);
 
+  const [searchTerm, setSearchTerm] = useState(""); // 👈 nuevo
+
   useEffect(() => {
     cargarPacientes();
     cargarTiposPaciente();
@@ -147,6 +149,21 @@ const Pacientes = () => {
 
   const formatearFecha = (d) => (d ? d.split("T")[0] : "-");
 
+  // 👈 Filtrado dinámico extendido (nombre, tipo, identificación, edad)
+  const filteredPacientes = pacientes.filter((p) => {
+    const nombre = p.nombre?.toLowerCase() || "";
+    const tipo = tiposPaciente.find((t) => t.id === p.tipoPacienteId)?.nombre?.toLowerCase() || "";
+    const identificacion = `${p.cedula} ${p.numeroCarnet || ""}`.toLowerCase();
+    const edad = String(p.edad);
+
+    return (
+      nombre.includes(searchTerm.toLowerCase()) ||
+      tipo.includes(searchTerm.toLowerCase()) ||
+      identificacion.includes(searchTerm.toLowerCase()) ||
+      edad.includes(searchTerm.toLowerCase())
+    );
+  });
+
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
@@ -167,7 +184,12 @@ const Pacientes = () => {
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="Buscar paciente..." className="pl-10" />
+            <Input
+              placeholder="Buscar por nombre, tipo, identificación o edad..."
+              className="pl-10"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
 
           <Button className="gap-2" onClick={() => abrirModal()}>
@@ -181,11 +203,19 @@ const Pacientes = () => {
           <p className="text-muted-foreground">Cargando pacientes...</p>
         ) : error ? (
           <p className="text-destructive">{error}</p>
-        ) : pacientes.length === 0 ? (
-          <p className="text-muted-foreground">No hay pacientes registrados.</p>
+        ) : filteredPacientes.length === 0 ? (
+          <div className="text-center py-12">
+            <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">
+              No se encontraron pacientes
+            </h3>
+            <p className="text-muted-foreground">
+              Intenta con otros términos de búsqueda
+            </p>
+          </div>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {pacientes.map((p) => (
+            {filteredPacientes.map((p) => (
               <Card key={p.id} className="hover:shadow-md transition-shadow">
                 <CardHeader>
                   <div className="flex items-start justify-between">
@@ -224,7 +254,7 @@ const Pacientes = () => {
                       </Button>
 
                       <Button
-                        variant="outline"
+                                                variant="outline"
                         size="sm"
                         className="flex-1 gap-2 text-destructive bg-transparent hover:text-destructive"
                         onClick={() => eliminar(p.id)}
@@ -262,7 +292,7 @@ const Pacientes = () => {
                   <Input
                     id="nombre"
                     value={formData.nombre}
-                                        onChange={(e) =>
+                    onChange={(e) =>
                       setFormData({ ...formData, nombre: e.target.value })
                     }
                     placeholder="Ej: María González"

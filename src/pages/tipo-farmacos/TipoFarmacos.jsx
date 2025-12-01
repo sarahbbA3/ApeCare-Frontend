@@ -44,6 +44,8 @@ const TipoFarmacos = () => {
     descripcion: "",
   });
 
+  const [searchTerm, setSearchTerm] = useState(""); // 👈 nuevo
+
   useEffect(() => {
     cargarTipos();
   }, []);
@@ -111,6 +113,13 @@ const TipoFarmacos = () => {
 
   const formatearFecha = (d) => (d ? d.split("T")[0] : "-");
 
+  // 👈 Filtrado dinámico
+  const filteredTipos = tipos.filter(
+    (tipo) =>
+      tipo.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      tipo.descripcion.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
@@ -131,7 +140,12 @@ const TipoFarmacos = () => {
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="Buscar tipo de fármaco..." className="pl-10" />
+            <Input
+              placeholder="Buscar tipo de fármaco por nombre o descripción..."
+              className="pl-10"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
 
           <Button className="gap-2" onClick={handleCreate}>
@@ -145,11 +159,19 @@ const TipoFarmacos = () => {
           <p className="text-muted-foreground">Cargando tipos de fármaco...</p>
         ) : error ? (
           <p className="text-destructive">{error}</p>
-        ) : tipos.length === 0 ? (
-          <p className="text-muted-foreground">No hay tipos de fármaco registrados.</p>
+        ) : filteredTipos.length === 0 ? (
+          <div className="text-center py-12">
+            <Pill className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">
+              No se encontraron tipos de fármaco
+            </h3>
+            <p className="text-muted-foreground">
+              Intenta con otros términos de búsqueda
+            </p>
+          </div>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {tipos.map((tipo) => (
+            {filteredTipos.map((tipo) => (
               <Card key={tipo.id} className="hover:shadow-md transition-shadow">
                 <CardHeader>
                   <CardTitle>{tipo.nombre}</CardTitle>
@@ -241,7 +263,7 @@ const TipoFarmacos = () => {
                       setFormData({ ...formData, descripcion: e.target.value })
                     }
                     placeholder="Describe el tipo de fármaco..."
-                    required
+                                        required
                   />
                 </div>
               </div>

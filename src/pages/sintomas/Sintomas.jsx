@@ -44,6 +44,8 @@ const Sintomas = () => {
     descripcion: "",
   });
 
+  const [searchTerm, setSearchTerm] = useState(""); // 👈 nuevo
+
   useEffect(() => {
     cargarSintomas();
   }, []);
@@ -110,6 +112,13 @@ const Sintomas = () => {
 
   const formatearFecha = (d) => (d ? d.split("T")[0] : "-");
 
+  // 👈 Filtrado dinámico
+  const filteredSintomas = sintomas.filter(
+    (sint) =>
+      sint.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      sint.descripcion.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
@@ -130,7 +139,12 @@ const Sintomas = () => {
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="Buscar síntoma..." className="pl-10" />
+            <Input
+              placeholder="Buscar síntoma..."
+              className="pl-10"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
 
           <Button className="gap-2" onClick={handleCreate}>
@@ -144,11 +158,19 @@ const Sintomas = () => {
           <p className="text-muted-foreground">Cargando síntomas...</p>
         ) : error ? (
           <p className="text-destructive">{error}</p>
-        ) : sintomas.length === 0 ? (
-          <p className="text-muted-foreground">No hay síntomas registrados.</p>
+        ) : filteredSintomas.length === 0 ? (
+          <div className="text-center py-12">
+            <HeartPulse className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">
+              No se encontraron síntomas
+            </h3>
+            <p className="text-muted-foreground">
+              Intenta con otros términos de búsqueda
+            </p>
+          </div>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {sintomas.map((sint) => (
+            {filteredSintomas.map((sint) => (
               <Card key={sint.id} className="hover:shadow-md transition-shadow">
                 <CardHeader>
                   <CardTitle>{sint.nombre}</CardTitle>
@@ -217,7 +239,7 @@ const Sintomas = () => {
               <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
                   <Label htmlFor="nombre">Nombre</Label>
-                  <Input
+                                    <Input
                     id="nombre"
                     value={formData.nombre}
                     onChange={(e) =>

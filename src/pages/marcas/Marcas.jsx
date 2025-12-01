@@ -44,6 +44,8 @@ const Marcas = () => {
     descripcion: "",
   });
 
+  const [searchTerm, setSearchTerm] = useState(""); // 👈 nuevo
+
   useEffect(() => {
     cargarMarcas();
   }, []);
@@ -111,6 +113,13 @@ const Marcas = () => {
 
   const formatearFecha = (d) => (d ? d.split("T")[0] : "-");
 
+  // 👈 Filtrado dinámico
+  const filteredMarcas = marcas.filter(
+    (marca) =>
+      marca.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      marca.descripcion.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
@@ -131,7 +140,12 @@ const Marcas = () => {
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="Buscar marca..." className="pl-10" />
+            <Input
+              placeholder="Buscar marca por nombre o descripción..."
+              className="pl-10"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
 
           <Button className="gap-2" onClick={handleCreate}>
@@ -145,11 +159,19 @@ const Marcas = () => {
           <p className="text-muted-foreground">Cargando marcas...</p>
         ) : error ? (
           <p className="text-destructive">{error}</p>
-        ) : marcas.length === 0 ? (
-          <p className="text-muted-foreground">No hay marcas registradas.</p>
+        ) : filteredMarcas.length === 0 ? (
+          <div className="text-center py-12">
+            <Tag className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">
+              No se encontraron marcas
+            </h3>
+            <p className="text-muted-foreground">
+              Intenta con otros términos de búsqueda
+            </p>
+          </div>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {marcas.map((marca) => (
+            {filteredMarcas.map((marca) => (
               <Card key={marca.id} className="hover:shadow-md transition-shadow">
                 <CardHeader>
                   <CardTitle>{marca.nombre}</CardTitle>
@@ -221,7 +243,7 @@ const Marcas = () => {
                   <Input
                     id="nombre"
                     value={formData.nombre}
-                    onChange={(e) =>
+                                        onChange={(e) =>
                       setFormData({ ...formData, nombre: e.target.value })
                     }
                     placeholder="Ej: Pfizer"

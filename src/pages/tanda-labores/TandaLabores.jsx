@@ -146,11 +146,19 @@ const TandaLabor = () => {
         </div>
 
         {/* LISTA DE TANDAS */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {filteredTandas.length === 0 ? (
-            <p className="text-muted-foreground">No hay tandas registradas</p>
-          ) : (
-            filteredTandas.map((tanda) => (
+        {filteredTandas.length === 0 ? (
+          <div className="text-center py-12">
+            <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">
+              No se encontraron tandas
+            </h3>
+            <p className="text-muted-foreground">
+              Intenta con otros términos de búsqueda
+            </p>
+          </div>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {filteredTandas.map((tanda) => (
               <Card key={tanda.id} className="hover:shadow-md transition-shadow">
                 <CardHeader>
                   <div className="flex items-start justify-between">
@@ -192,9 +200,9 @@ const TandaLabor = () => {
                   </div>
                 </CardContent>
               </Card>
-            ))
-          )}
-        </div>
+            ))}
+          </div>
+        )}
 
         {/* MODAL FORM */}
         <Dialog open={formOpen} onOpenChange={setFormOpen}>
@@ -247,10 +255,9 @@ const TandaLabor = () => {
                   type="button"
                   variant="outline"
                   onClick={() => setFormOpen(false)}
-                                >
+                >
                   Cancelar
                 </Button>
-
                 <Button type="submit">
                   {formMode === "create" ? "Crear Tanda" : "Guardar Cambios"}
                 </Button>

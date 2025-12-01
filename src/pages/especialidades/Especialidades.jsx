@@ -37,6 +37,7 @@ const Especialidades = () => {
   const [formData, setFormData] = useState({ nombre: "", descripcion: "" });
   const [error, setError] = useState(null);
   const [cargando, setCargando] = useState(false);
+  const [searchTerm, setSearchTerm] = useState(""); // 👈 nuevo
 
   useEffect(() => {
     cargarEspecialidades();
@@ -105,6 +106,13 @@ const Especialidades = () => {
 
   const formatearFecha = (d) => (d ? d.split("T")[0] : "-");
 
+  // 👈 Filtrado dinámico
+  const filteredEspecialidades = especialidades.filter(
+    (e) =>
+      e.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      e.descripcion.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
@@ -125,7 +133,12 @@ const Especialidades = () => {
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="Buscar especialidad..." className="pl-10" />
+            <Input
+              placeholder="Buscar especialidad..."
+              className="pl-10"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
 
           <Button className="gap-2" onClick={handleCreate}>
@@ -139,11 +152,19 @@ const Especialidades = () => {
           <p className="text-muted-foreground">Cargando especialidades...</p>
         ) : error ? (
           <p className="text-destructive">{error}</p>
-        ) : especialidades.length === 0 ? (
-          <p className="text-muted-foreground">No hay especialidades registradas.</p>
+        ) : filteredEspecialidades.length === 0 ? (
+          <div className="text-center py-12">
+            <GraduationCap className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">
+              No se encontraron especialidades
+            </h3>
+            <p className="text-muted-foreground">
+              Intenta con otros términos de búsqueda
+            </p>
+          </div>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {especialidades.map((e) => (
+            {filteredEspecialidades.map((e) => (
               <Card key={e.id} className="hover:shadow-md transition-shadow">
                 <CardHeader>
                   <CardTitle className="text-lg">{e.nombre}</CardTitle>
@@ -204,7 +225,7 @@ const Especialidades = () => {
               <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
                   <Label htmlFor="nombre">Nombre de la Especialidad</Label>
-                  <Input
+                                    <Input
                     id="nombre"
                     value={formData.nombre}
                     onChange={(e) =>
