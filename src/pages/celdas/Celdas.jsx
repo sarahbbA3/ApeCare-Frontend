@@ -82,6 +82,19 @@ const Celdas = () => {
 
   const guardarCelda = async (e) => {
     e.preventDefault();
+
+    // 👇 Validación: máximo 4 celdas por tramo
+    const celdasEnTramo = listCeldas.filter((c) => String(c.tramoId) === String(formData.tramoId));
+
+    const tramoOriginal = editandoCelda?.tramoId?.toString();
+    const tramoNuevo = formData.tramoId;
+    const tramoCambiado = editandoCelda && tramoOriginal !== tramoNuevo;
+
+    if ((!editandoCelda || tramoCambiado) && celdasEnTramo.length >= 4) {
+      alert("Este tramo ya tiene 4 celdas. No se pueden asignar más.");
+      return;
+    }
+
     try {
       if (formMode === "edit" && editandoCelda) {
         await editarCelda(editandoCelda.id, formData);
@@ -196,7 +209,7 @@ const Celdas = () => {
                         <span className="text-muted-foreground">Creación:</span>
                         <span className="font-medium">{formatearFecha(c.fechaCreacion)}</span>
                       </div>
-                      <div className="flex justify-between">
+                                            <div className="flex justify-between">
                         <span className="text-muted-foreground">Actualización:</span>
                         <span className="font-medium">{formatearFecha(c.fechaActualizacion)}</span>
                       </div>
@@ -218,7 +231,7 @@ const Celdas = () => {
                           onClick={() => handleDelete(c.id)}
                         >
                           <Trash2 className="h-3 w-3" />
-                                                    Eliminar
+                          Eliminar
                         </Button>
                       </div>
                     </div>

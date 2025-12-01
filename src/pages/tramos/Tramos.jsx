@@ -52,7 +52,7 @@ const Tramos = () => {
   const [formData, setFormData] = useState({
     nombre: "",
     estanteId: "",
-    estadoId: 1, // se asigna automáticamente
+    estadoId: 1,
   });
   const [editandoTramo, setEditandoTramo] = useState(null);
   const [formOpen, setFormOpen] = useState(false);
@@ -97,6 +97,21 @@ const Tramos = () => {
 
   const guardarTramo = async (e) => {
     e.preventDefault();
+
+    // 👇 Validación: máximo 6 tramos por estante
+    const tramosEnEstante = listTramos.filter(
+      (t) => String(t.estanteId) === String(formData.estanteId)
+    );
+
+    const estanteOriginal = editandoTramo?.estanteId?.toString();
+    const estanteNuevo = formData.estanteId;
+    const estanteCambiado = editandoTramo && estanteOriginal !== estanteNuevo;
+
+    if ((!editandoTramo || estanteCambiado) && tramosEnEstante.length >= 6) {
+      alert("Este estante ya tiene 6 tramos. No se pueden asignar más.");
+      return;
+    }
+
     try {
       if (editandoTramo) {
         await editarTramo(editandoTramo.id, formData);
@@ -235,7 +250,7 @@ const Tramos = () => {
                           className="flex-1 gap-2 text-destructive hover:text-destructive bg-transparent"
                           onClick={() => eliminar(t.id)}
                         >
-                          <Trash2 className="h-3 w-3" />
+                                                    <Trash2 className="h-3 w-3" />
                           Eliminar
                         </Button>
                       </div>
@@ -250,65 +265,65 @@ const Tramos = () => {
         {/* Modal Form */}
         <Dialog open={formOpen} onOpenChange={setFormOpen}>
           <DialogContent className="sm:max-w-[500px]">
-                      <DialogHeader>
-            <DialogTitle>
-              {editandoTramo ? "Editar Tramo" : "Nuevo Tramo"}
-            </DialogTitle>
-            <DialogDescription>
-              {editandoTramo
-                ? "Modifica la información del tramo"
-                : "Agrega un nuevo tramo al sistema de almacenamiento"}
-            </DialogDescription>
-          </DialogHeader>
+            <DialogHeader>
+              <DialogTitle>
+                {editandoTramo ? "Editar Tramo" : "Nuevo Tramo"}
+              </DialogTitle>
+              <DialogDescription>
+                {editandoTramo
+                  ? "Modifica la información del tramo"
+                  : "Agrega un nuevo tramo al sistema de almacenamiento"}
+              </DialogDescription>
+            </DialogHeader>
 
-          <form onSubmit={guardarTramo}>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="nombre">Nombre</Label>
-                <Input
-                  id="nombre"
-                  placeholder="Tramo Norte"
-                  value={formData.nombre}
-                  onChange={(e) =>
-                    setFormData({ ...formData, nombre: e.target.value })
-                  }
-                  required
-                />
+            <form onSubmit={guardarTramo}>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="nombre">Nombre</Label>
+                  <Input
+                    id="nombre"
+                    placeholder="Tramo Norte"
+                    value={formData.nombre}
+                    onChange={(e) =>
+                      setFormData({ ...formData, nombre: e.target.value })
+                    }
+                    required
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="estanteId">Estante</Label>
+                  <Select
+                    value={formData.estanteId}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, estanteId: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar estante" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {listEstantes.map((e) => (
+                        <SelectItem key={e.id} value={String(e.id)}>
+                          {e.nombre}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
-              <div className="grid gap-2">
-                <Label htmlFor="estanteId">Estante</Label>
-                <Select
-                  value={formData.estanteId}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, estanteId: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar estante" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {listEstantes.map((e) => (
-                      <SelectItem key={e.id} value={String(e.id)}>
-                        {e.nombre}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={cerrarModal}>
-                Cancelar
-              </Button>
-              <Button type="submit">
-                {editandoTramo ? "Actualizar" : "Guardar"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={cerrarModal}>
+                  Cancelar
+                </Button>
+                <Button type="submit">
+                  {editandoTramo ? "Actualizar" : "Guardar"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
     </Layout>
   );
