@@ -36,6 +36,7 @@ const TipoPacientes = () => {
   const [tipos, setTipos] = useState([]);
   const [pacientes, setPacientes] = useState([]);
   const [conteoPorTipo, setConteoPorTipo] = useState({});
+  const [searchTerm, setSearchTerm] = useState(""); // 👈 nuevo
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -134,6 +135,13 @@ const TipoPacientes = () => {
 
   const formatearFecha = (d) => (d ? d.split("T")[0] : "-");
 
+  // 👈 Filtrado dinámico
+  const filteredTipos = tipos.filter(
+    (tipo) =>
+      tipo.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      tipo.descripcion.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
@@ -154,7 +162,12 @@ const TipoPacientes = () => {
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="Buscar tipo de paciente..." className="pl-10" />
+            <Input
+              placeholder="Buscar tipo de paciente..."
+              className="pl-10"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
 
           <Button className="gap-2" onClick={handleCreate}>
@@ -168,11 +181,19 @@ const TipoPacientes = () => {
           <p className="text-muted-foreground">Cargando tipos de paciente...</p>
         ) : error ? (
           <p className="text-destructive">{error}</p>
-        ) : tipos.length === 0 ? (
-          <p className="text-muted-foreground">No hay tipos registrados.</p>
+        ) : filteredTipos.length === 0 ? (
+          <div className="text-center py-12">
+            <UserCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">
+              No se encontraron tipos de paciente
+            </h3>
+            <p className="text-muted-foreground">
+              Intenta con otros términos de búsqueda
+            </p>
+          </div>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {tipos.map((tipo) => (
+            {filteredTipos.map((tipo) => (
               <Card key={tipo.id} className="hover:shadow-md transition-shadow">
                 <CardHeader>
                   <div className="flex items-start justify-between">
@@ -215,7 +236,7 @@ const TipoPacientes = () => {
 
                       <Button
                         variant="outline"
-                        size="sm"
+                                                size="sm"
                         className="flex-1 gap-2 text-destructive bg-transparent hover:text-destructive"
                         onClick={() => handleDelete(tipo.id)}
                       >
@@ -261,7 +282,7 @@ const TipoPacientes = () => {
 
                 <div className="grid gap-2">
                   <Label htmlFor="descripcion">Descripción</Label>
-                                    <Textarea
+                  <Textarea
                     id="descripcion"
                     rows={3}
                     value={formData.descripcion}
