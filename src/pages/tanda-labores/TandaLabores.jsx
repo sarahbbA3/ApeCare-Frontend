@@ -25,8 +25,20 @@ import {
 } from "@/components/ui/dialog";
 
 import { Clock, Plus, Search, Edit, Trash2 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import AccessDenied from "@/components/common/AccessDenied";
 
 const TandaLabor = () => {
+  const { usuario } = useAuth();
+  const esMedico = usuario?.rol === "MEDICO"; // valido por rol
+
+  if (esMedico) {
+    return (
+      <Layout>
+        <AccessDenied />
+      </Layout>
+    );
+  }
   const [tandas, setTandas] = useState([]);
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState("create");

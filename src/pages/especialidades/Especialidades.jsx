@@ -28,8 +28,20 @@ import {
   editarEspecialidad,
   eliminarEspecialidad,
 } from "../../services/EspecialidadesServices";
+import { useAuth } from "@/hooks/useAuth";
+import AccessDenied from "@/components/common/AccessDenied";
 
 const Especialidades = () => {
+  const { usuario } = useAuth();
+  const esMedico = usuario?.rol === "MEDICO"; // valido por rol
+
+  if (esMedico) {
+    return (
+      <Layout>
+        <AccessDenied />
+      </Layout>
+    );
+  }
   const [especialidades, setEspecialidades] = useState([]);
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState("create");
@@ -106,7 +118,6 @@ const Especialidades = () => {
 
   const formatearFecha = (d) => (d ? d.split("T")[0] : "-");
 
-  // 👈 Filtrado dinámico
   const filteredEspecialidades = especialidades.filter(
     (e) =>
       e.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||

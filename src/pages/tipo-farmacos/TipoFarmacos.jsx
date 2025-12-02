@@ -29,8 +29,20 @@ import {
   editarTipoFarmaco,
   eliminarTipoFarmaco,
 } from "../../services/TipoFarmacosServices";
+import { useAuth } from "@/hooks/useAuth";
+import AccessDenied from "@/components/common/AccessDenied";
 
 const TipoFarmacos = () => {
+  const { usuario } = useAuth();
+  const esMedico = usuario?.rol === "MEDICO"; // valido por rol
+
+  if (esMedico) {
+    return (
+      <Layout>
+        <AccessDenied />
+      </Layout>
+    );
+  }
   const [tipos, setTipos] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -44,7 +56,7 @@ const TipoFarmacos = () => {
     descripcion: "",
   });
 
-  const [searchTerm, setSearchTerm] = useState(""); // 👈 nuevo
+  const [searchTerm, setSearchTerm] = useState(""); 
 
   useEffect(() => {
     cargarTipos();
@@ -113,7 +125,6 @@ const TipoFarmacos = () => {
 
   const formatearFecha = (d) => (d ? d.split("T")[0] : "-");
 
-  // 👈 Filtrado dinámico
   const filteredTipos = tipos.filter(
     (tipo) =>
       tipo.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -263,7 +274,7 @@ const TipoFarmacos = () => {
                       setFormData({ ...formData, descripcion: e.target.value })
                     }
                     placeholder="Describe el tipo de fármaco..."
-                                        required
+                    required
                   />
                 </div>
               </div>

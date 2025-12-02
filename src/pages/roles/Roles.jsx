@@ -7,6 +7,7 @@ import {
 } from "../../services/RolesServices";
 import Layout from "../../components/common/Layout";
 import { useAuth } from "../../context/AuthContext";
+import AccessDenied from "@/components/common/AccessDenied";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,9 +22,7 @@ const Roles = () => {
   if (esMedico) {
     return (
       <Layout>
-        <div className="min-h-screen flex items-center justify-center text-slate-600 text-lg">
-          No tienes permisos para acceder a esta sección.
-        </div>
+        <AccessDenied />
       </Layout>
     );
   }

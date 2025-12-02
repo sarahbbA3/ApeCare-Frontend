@@ -61,16 +61,23 @@ export function Navigation() {
   const { usuario, logout } = useAuth()
   const esMedico = usuario?.rol === "MEDICO"
 
-  // ✅ Filtrar submenu si es médico
-  const filteredNavItems = navItems.map((item) => {
+  // Filtrar submenu si es médico
+  const filteredNavItems = navItems.flatMap((item) => {
     if (item.submenu && esMedico) {
-      const submenuFiltrado = item.submenu.filter(
-        (sub) => sub.href !== "/rol" && sub.href !== "/usuario"
-      )
-      return { ...item, submenu: submenuFiltrado }
+
+      const sintomasItem = item.submenu.find((sub) => sub.href === "/sintoma");
+      return sintomasItem
+        ? [{ ...sintomasItem }] //convierte sintoma a item
+        : [];
     }
-    return item
-  })
+
+    if (item.submenu && !esMedico) {
+      // si no es medico, se muestra lo de siempre
+      return [item];
+    }
+
+    return [item];
+  });
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-gray-200 bg-white/90 backdrop-blur-md shadow-sm">
@@ -158,7 +165,7 @@ export function Navigation() {
               )
             })}
 
-            {/* 🔒 Botón Cerrar sesión (desktop) */}
+            {/* Botón Cerrar sesión (desktop)*/}
             <button
               type="button"
               onClick={logout}
@@ -238,7 +245,7 @@ export function Navigation() {
               )
             })}
 
-            {/* 🔒 Botón Cerrar sesión (mobile) */}
+            {/* Botón Cerrar sesión (mobile) */}
             <button
               type="button"
               onClick={logout}
