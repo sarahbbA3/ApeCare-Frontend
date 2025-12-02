@@ -63,7 +63,7 @@ const Medicamentos = () => {
     descripcionExtra: "",
   });
 
-  const [searchTerm, setSearchTerm] = useState(""); // 👈 nuevo
+  const [searchTerm, setSearchTerm] = useState(""); 
 
   const fechaMinimaVencimiento = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000)
     .toISOString()
@@ -166,7 +166,27 @@ const Medicamentos = () => {
 
   const formatearFecha = (d) => (d ? d.split("T")[0] : "-");
 
-  // 👈 Filtrado dinámico extendido (nombre, tipo de fármaco, marca, ubicación)
+  const totalMedicamentos = medicamentos.length;
+
+  const proximosAVencer = medicamentos.filter((m) =>
+    vencimientoProximo(m.fechaVencimiento)
+  ).length;
+
+  const sinStock = medicamentos.filter((m) => m.cantidadDisponible === 0).length;
+
+  const bajoStock = medicamentos.filter(
+    (m) => m.cantidadDisponible > 0 && m.cantidadDisponible <= 30
+  ).length;
+
+  const medicamentosPorUbicacion = medicamentos.reduce((acc, med) => {
+    if (!acc[med.ubicacionId]) {
+      acc[med.ubicacionId] = 0;
+    }
+    acc[med.ubicacionId]++;
+    return acc;
+  }, {});
+
+
   const filteredMedicamentos = medicamentos.filter((m) => {
     const nombre = m.descripcion?.toLowerCase() || "";
     const tipoFarmaco = m.tipoFarmacoNombre?.toLowerCase() || "";
@@ -215,6 +235,43 @@ const Medicamentos = () => {
           </Button>
         </div>
 
+        {/* STATS */}
+        <div className="grid gap-4 md:grid-cols-4 mb-8">
+          <Card>
+            <CardHeader>
+              <CardDescription>Total Medicamentos</CardDescription>
+              <CardTitle className="text-3xl">{totalMedicamentos}</CardTitle>
+            </CardHeader>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardDescription>Próximos a Vencer</CardDescription>
+              <CardTitle className="text-3xl text-warning">
+                {proximosAVencer}
+              </CardTitle>
+            </CardHeader>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardDescription>Bajo Stock</CardDescription>
+              <CardTitle className="text-3xl text-secondary">
+                {bajoStock}
+              </CardTitle>
+            </CardHeader>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardDescription>Sin Stock</CardDescription>
+              <CardTitle className="text-3xl text-destructive">
+                {sinStock}
+              </CardTitle>
+            </CardHeader>
+          </Card>
+        </div>
+
         {/* Error or Loading */}
         {loading ? (
           <p className="text-muted-foreground">Cargando medicamentos...</p>
@@ -245,8 +302,13 @@ const Medicamentos = () => {
                         <AlertCircle className="h-3 w-3" />
                         Sin stock
                       </Badge>
+                    ) : med.cantidadDisponible <= 30 ? (
+                      <Badge variant="secondary" className="gap-1">
+                        <AlertCircle className="h-3 w-3" />
+                        Bajo stock
+                      </Badge>
                     ) : vencimientoProximo(med.fechaVencimiento) ? (
-                                            <Badge variant="warning" className="gap-1">
+                      <Badge variant="warning" className="gap-1">
                         Próximo a vencer
                       </Badge>
                     ) : null}
@@ -441,14 +503,22 @@ const Medicamentos = () => {
                     </SelectTrigger>
                     <SelectContent>
                       {ubicaciones
-                        .filter(
-                          (u) => u.tipoFarmacoId === parseInt(formData.tipoFarmacoId)
-                        )
-                        .map((u) => (
-                          <SelectItem key={u.id} value={String(u.id)}>
-                            {`${u.estanteNombre} → ${u.tramoNombre} → ${u.celdaNombre}`}
-                          </SelectItem>
-                        ))}
+                        .filter((u) => u.tipoFarmacoId === parseInt(formData.tipoFarmacoId))
+                        .map((u) => {
+                          const count = medicamentosPorUbicacion[u.id] || 0;
+                          const disabled = count >= 3;
+
+                          return (
+                            <SelectItem
+                              key={u.id}
+                              value={String(u.id)}
+                              disabled={disabled}
+                            >
+                              {`${u.estanteNombre} → ${u.tramoNombre} → ${u.celdaNombre}`}
+                              {disabled && " (máximo alcanzado)"}
+                            </SelectItem>
+                          );
+                        })}
                     </SelectContent>
                   </Select>
                 </div>
@@ -468,7 +538,7 @@ const Medicamentos = () => {
                   />
                 </div>
 
-                {/* Descripción opcional */}
+                {/* Descripción */}
                 <div className="grid gap-2">
                   <Label htmlFor="extra">Descripción (Opcional)</Label>
                   <Textarea
