@@ -162,7 +162,6 @@ const Ubicaciones = () => {
 
   const formatearFecha = (d) => (d ? d.split("T")[0] : "-");
 
-  // 👈 Filtrado dinámico extendido (nombre, descripción, tipo de fármaco)
   const filteredUbicaciones = ubicaciones.filter((u) => {
     const nombre = u.nombre?.toLowerCase() || "";
     const descripcion = u.descripcion?.toLowerCase() || "";
@@ -175,7 +174,6 @@ const Ubicaciones = () => {
     );
   });
 
-  // 👈 Filtrar celdas disponibles
   const usadas = ubicaciones.map((u) => u.celdaId);
   let celdasDisponibles = celdas.filter((c) => !usadas.includes(c.id));
 
@@ -248,7 +246,6 @@ const Ubicaciones = () => {
                     <Badge>Activa</Badge>
                   </div>
                 </CardHeader>
-
                 <CardContent>
                   <div className="space-y-3 text-sm">
                     {/* Tipo de fármaco */}
@@ -265,12 +262,17 @@ const Ubicaciones = () => {
                       </span>
                     </div>
 
-                    {/* Productos (conteo dinámico) */}
+                    {/* Productos */}
                     <div className="flex items-center gap-2">
                       <Package className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm text-muted-foreground">
                         {productosPorUbicacion[u.id] || 0} productos
                       </span>
+                      {productosPorUbicacion[u.id] >= 3 && (
+                        <span className="text-destructive text-xs font-medium">
+                          (capacidad completa)
+                        </span>
+                      )}
                     </div>
 
                     {/* Fechas */}
