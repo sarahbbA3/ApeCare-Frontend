@@ -86,7 +86,7 @@ export function Navigation() {
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600">
-              <HeartPulse className="h-6 w-6 text-white" />
+              <Activity className="h-6 w-6 text-white" />
             </div>
             <span className="text-xl font-semibold text-gray-900">ApeCare</span>
           </Link>

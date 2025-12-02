@@ -19,7 +19,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
-import { ClipboardList, Plus, Search, Edit, Trash2, Calendar, Filter, X } from "lucide-react"
+import { ClipboardList, Plus, Search, Edit, Trash2, Calendar, Filter, X, Download, FileText } from "lucide-react"
+import { descargarReporteVisita } from "../../services/RegistroVisitasServices"
+import { descargarReporteVisitasFiltradas } from "../../services/RegistroVisitasServices"
 
 const RegistroVisitas = () => {
   const [visitas, setVisitas] = useState([])
@@ -253,7 +255,19 @@ const RegistroVisitas = () => {
                   </Badge>
                 )}
               </Button>
-
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={() =>
+                  descargarReporteVisitasFiltradas({
+                    medicoId: filterMedico !== "all" ? filterMedico : null,
+                    pacienteId: filterPaciente !== "all" ? filterPaciente : null,
+                    fecha: filterFecha || null,
+                  })
+                }
+              >
+                <Download className="h-4 w-4" /> Reportar visitas filtradas
+              </Button>
               <Button className="gap-2" onClick={() => abrirModal()}>
                 <Plus className="h-4 w-4" />
                 Nueva Visita
@@ -444,6 +458,16 @@ const RegistroVisitas = () => {
                       >
                         <Trash2 className="h-3 w-3" /> Eliminar
                       </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 gap-2 bg-transparent"
+                        onClick={() => descargarReporteVisita(v.id)}
+                      >
+                        <FileText className="h-3 w-3" /> Reporte
+                      </Button>
+
+
                     </div>
                   </div>
                 </CardContent>
