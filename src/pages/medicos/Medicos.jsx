@@ -46,8 +46,20 @@ import {
 import { obtenerEspecialidades } from "../../services/EspecialidadesServices";
 import { obtenerTandas } from "../../services/TandaLaboresServices";
 import { obtenerUsuarios } from "../../services/UsuariosServices";
+import { useAuth } from "@/hooks/useAuth";
+import AccessDenied from "@/components/common/AccessDenied";
 
 const Medicos = () => {
+  const { usuario } = useAuth();
+  const esMedico = usuario?.rol === "MEDICO"; // valido por rol
+
+  if (esMedico) {
+    return (
+      <Layout>
+        <AccessDenied />
+      </Layout>
+    );
+  }
   const [medicos, setMedicos] = useState([]);
   const [especialidades, setEspecialidades] = useState([]);
   const [tandas, setTandas] = useState([]);

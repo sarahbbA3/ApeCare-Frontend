@@ -8,10 +8,11 @@ import {
 import { obtenerRoles } from "../../services/RolesServices";
 import Layout from "../../components/common/Layout";
 import { useAuth } from "../../context/AuthContext";
+import AccessDenied from "@/components/common/AccessDenied";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { UserPen, Search, Plus, Edit, Trash2, Mail, Shield } from "lucide-react";
+import { UserPen, Search, Plus, Edit, Trash2, Mail, Shield, BrickWallShield } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { X } from "lucide-react";
 
@@ -22,9 +23,7 @@ const Usuarios = () => {
   if (esMedico) {
     return (
       <Layout>
-        <div className="min-h-screen flex items-center justify-center text-slate-600 text-lg">
-          No tienes permisos para acceder a esta sección.
-        </div>
+        <AccessDenied />
       </Layout>
     );
   }
@@ -69,8 +68,6 @@ const Usuarios = () => {
     setFormData({
       correo: usuario?.correo || "",
       nombre: usuario?.nombre || "",
-      // IMPORTANTE: mantener la contraseña actual del backend en el estado
-      // para no vaciarla si no se cambia. El input la mostrará como puntitos.
       contrasena: usuario?.contrasena || "",
       rolId: usuario?.rolId?.toString() || "",
     });
@@ -94,9 +91,9 @@ const Usuarios = () => {
     const payload = {
       correo: formData.correo,
       nombre: formData.nombre,
-      contrasena: formData.contrasena, // siempre se envía, como en tu lógica original
+      contrasena: formData.contrasena, 
       rolId: formData.rolId,
-      estadoId: 1, // se mantiene como activo desde frontend (tu lógica original)
+      estadoId: 1, 
     };
 
     try {
@@ -303,7 +300,7 @@ const Usuarios = () => {
                 />
               </div>
 
-              {/* Contraseña (siempre presente) */}
+              {/* Contraseña */}
               <div>
                 <Label htmlFor="contrasena">Contraseña</Label>
                 <Input

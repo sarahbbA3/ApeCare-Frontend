@@ -20,8 +20,20 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useAuth } from "@/hooks/useAuth";
+import AccessDenied from "@/components/common/AccessDenied";
 
 const Celdas = () => {
+  const { usuario } = useAuth();
+  const esMedico = usuario?.rol === "MEDICO"; // valido por rol
+
+  if (esMedico) {
+    return (
+      <Layout>
+        <AccessDenied />
+      </Layout>
+    );
+  }
   const [listCeldas, setListCeldas] = useState([]);
   const [listTramos, setListTramos] = useState([]);
   const [listUbicaciones, setListUbicaciones] = useState([]);
@@ -83,7 +95,7 @@ const Celdas = () => {
   const guardarCelda = async (e) => {
     e.preventDefault();
 
-    // 👇 Validación: máximo 4 celdas por tramo
+    // se valida máximo 4 celdas por tramo
     const celdasEnTramo = listCeldas.filter((c) => String(c.tramoId) === String(formData.tramoId));
 
     const tramoOriginal = editandoCelda?.tramoId?.toString();

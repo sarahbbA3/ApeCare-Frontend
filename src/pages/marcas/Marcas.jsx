@@ -29,8 +29,20 @@ import {
   editarMarca,
   eliminarMarca,
 } from "../../services/MarcasServices";
+import { useAuth } from "@/hooks/useAuth";
+import AccessDenied from "@/components/common/AccessDenied";
 
 const Marcas = () => {
+  const { usuario } = useAuth();
+  const esMedico = usuario?.rol === "MEDICO"; // valido por rol
+
+  if (esMedico) {
+    return (
+      <Layout>
+        <AccessDenied />
+      </Layout>
+    );
+  }
   const [marcas, setMarcas] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -44,7 +56,7 @@ const Marcas = () => {
     descripcion: "",
   });
 
-  const [searchTerm, setSearchTerm] = useState(""); // 👈 nuevo
+  const [searchTerm, setSearchTerm] = useState(""); 
 
   useEffect(() => {
     cargarMarcas();
@@ -113,7 +125,6 @@ const Marcas = () => {
 
   const formatearFecha = (d) => (d ? d.split("T")[0] : "-");
 
-  // 👈 Filtrado dinámico
   const filteredMarcas = marcas.filter(
     (marca) =>
       marca.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||

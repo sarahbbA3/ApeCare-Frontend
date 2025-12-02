@@ -44,8 +44,20 @@ import {
 } from "../../services/TramosServices";
 import { obtenerEstantes } from "../../services/EstantesServices";
 import { obtenerCeldas } from "../../services/CeldasServices";
+import { useAuth } from "@/hooks/useAuth";
+import AccessDenied from "@/components/common/AccessDenied";
 
 const Tramos = () => {
+  const { usuario } = useAuth();
+  const esMedico = usuario?.rol === "MEDICO"; // valido por rol
+
+  if (esMedico) {
+    return (
+      <Layout>
+        <AccessDenied />
+      </Layout>
+    );
+  }
   const [listTramos, setListTramos] = useState([]);
   const [listEstantes, setListEstantes] = useState([]);
   const [listCeldas, setListCeldas] = useState([]);
@@ -98,7 +110,7 @@ const Tramos = () => {
   const guardarTramo = async (e) => {
     e.preventDefault();
 
-    // 👇 Validación: máximo 6 tramos por estante
+    // se valida máximo 6 tramos por estante
     const tramosEnEstante = listTramos.filter(
       (t) => String(t.estanteId) === String(formData.estanteId)
     );
@@ -250,7 +262,7 @@ const Tramos = () => {
                           className="flex-1 gap-2 text-destructive hover:text-destructive bg-transparent"
                           onClick={() => eliminar(t.id)}
                         >
-                                                    <Trash2 className="h-3 w-3" />
+                          <Trash2 className="h-3 w-3" />
                           Eliminar
                         </Button>
                       </div>

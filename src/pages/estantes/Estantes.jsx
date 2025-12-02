@@ -19,8 +19,20 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { useAuth } from "@/hooks/useAuth";
+import AccessDenied from "@/components/common/AccessDenied";
 
 const Estantes = () => {
+  const { usuario } = useAuth();
+  const esMedico = usuario?.rol === "MEDICO"; // valido por rol
+
+  if (esMedico) {
+    return (
+      <Layout>
+        <AccessDenied />
+      </Layout>
+    );
+  }
   const [listEstantes, setListEstantes] = useState([]);
   const [listTramos, setListTramos] = useState([]);
   const [listCeldas, setListCeldas] = useState([]);
