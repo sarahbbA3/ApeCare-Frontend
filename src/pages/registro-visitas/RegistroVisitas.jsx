@@ -9,7 +9,17 @@ import { obtenerPacientes } from "../../services/PacientesServices"
 import { obtenerMedicos } from "../../services/MedicosServices"
 import { obtenerSintomas } from "../../services/SintomasServices"
 import { obtenerMedicamentos } from "../../services/MedicamentosServices"
+
 import Layout from "../../components/common/Layout"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Badge } from "@/components/ui/badge"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Textarea } from "@/components/ui/textarea"
+import { ClipboardList, Plus, Search, Edit, Trash2, Calendar, Filter, X } from "lucide-react"
 
 const RegistroVisitas = () => {
   const [visitas, setVisitas] = useState([])
@@ -27,10 +37,11 @@ const RegistroVisitas = () => {
     pacienteId: "",
     medicoId: "",
     sintomasIds: [],
-    medicamentosIds: [],
+    medicamentos: [],
   })
 
   const [searchTerm, setSearchTerm] = useState("")
+  const [searchSintoma, setSearchSintoma] = useState("");
   const [filterPaciente, setFilterPaciente] = useState("all")
   const [filterMedico, setFilterMedico] = useState("all")
   const [filterSintoma, setFilterSintoma] = useState("all")
@@ -67,7 +78,11 @@ const RegistroVisitas = () => {
             pacienteId: visita.pacienteId?.toString() || "",
             medicoId: visita.medicoId?.toString() || "",
             sintomasIds: visita.sintomasIds?.map(String) || [],
-            medicamentosIds: visita.medicamentosIds?.map(String) || [],
+            medicamentos:
+              visita.medicamentos?.map((m) => ({
+                medicamentoId: m.medicamentoId,
+                cantidadSuministrada: m.cantidadSuministrada,
+              })) || [],
           }
         : {
             fechaVisita: "",
@@ -76,7 +91,7 @@ const RegistroVisitas = () => {
             pacienteId: "",
             medicoId: "",
             sintomasIds: [],
-            medicamentosIds: [],
+            medicamentos: [],
           }
     )
     setIsModalOpen(true)
@@ -92,7 +107,7 @@ const RegistroVisitas = () => {
       pacienteId: "",
       medicoId: "",
       sintomasIds: [],
-      medicamentosIds: [],
+      medicamentos: [],
     })
   }
 
@@ -100,7 +115,10 @@ const RegistroVisitas = () => {
     const data = {
       ...payload,
       sintomasIds: payload.sintomasIds.map(Number),
-      medicamentosIds: payload.medicamentosIds.map(Number),
+      medicamentos: payload.medicamentos.map((m) => ({
+        medicamentoId: Number(m.medicamentoId),
+        cantidadSuministrada: Number(m.cantidadSuministrada),
+      })),
     }
     try {
       if (editando) {
@@ -148,11 +166,14 @@ const RegistroVisitas = () => {
       .join(", ")
   }
 
-  const obtenerNombresMedicamentos = (ids) => {
-    return ids
-      .map((id) => {
-        const m = medicamentos.find((med) => med.id === parseInt(id))
-        return m ? m.descripcion : `Medicamento ${id}`
+  const obtenerNombresMedicamentos = (medsVisita) => {
+    if (!medsVisita || medsVisita.length === 0) return ""
+    return medsVisita
+      .map((mv) => {
+        const med = medicamentos.find((mm) => mm.id === mv.medicamentoId)
+        return med
+          ? `${med.descripcion} (${mv.cantidadSuministrada})`
+          : `Medicamento (${mv.cantidadSuministrada})`
       })
       .join(", ")
   }
@@ -160,19 +181,21 @@ const RegistroVisitas = () => {
   const horaMaxima = useMemo(() => {
     const hoy = new Date().toISOString().split("T")[0]
     if (formData.fechaVisita === hoy) {
-      return new Date().toTimeString().slice(0, 5) // formato HH:mm
+      return new Date().toTimeString().slice(0, 5)
     }
     return undefined
   }, [formData.fechaVisita])
 
   const visitasFiltradas = useMemo(() => {
     return visitas.filter((v) => {
+      const term = searchTerm.toLowerCase()
       const matchesSearch =
-        searchTerm === "" ||
-        obtenerNombrePaciente(v.pacienteId).toLowerCase().includes(searchTerm.toLowerCase()) ||
-        obtenerNombreMedico(v.medicoId).toLowerCase().includes(searchTerm.toLowerCase()) ||
-        obtenerNombresSintomas(v.sintomasIds).toLowerCase().includes(searchTerm.toLowerCase()) ||
-        v.recomendaciones?.toLowerCase().includes(searchTerm.toLowerCase())
+        term === "" ||
+        obtenerNombrePaciente(v.pacienteId).toLowerCase().includes(term) ||
+        obtenerNombreMedico(v.medicoId).toLowerCase().includes(term) ||
+        obtenerNombresSintomas(v.sintomasIds).toLowerCase().includes(term) ||
+        obtenerNombresMedicamentos(v.medicamentos).toLowerCase().includes(term) ||
+        v.recomendaciones?.toLowerCase().includes(term)
 
       const matchesPaciente = filterPaciente === "all" || v.pacienteId.toString() === filterPaciente
       const matchesMedico = filterMedico === "all" || v.medicoId.toString() === filterMedico
@@ -183,291 +206,523 @@ const RegistroVisitas = () => {
     })
   }, [visitas, searchTerm, filterPaciente, filterMedico, filterSintoma, filterFecha])
 
+  const activeFiltersCount = [filterPaciente !== "all", filterMedico !== "all", filterSintoma !== "all", filterFecha !== ""].filter(Boolean).length
+
   return (
     <Layout>
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="bg-white rounded-xl shadow-md p-6 text-slate-700">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-slate-800">Registro de Visitas</h2>
+      <div className="container mx-auto px-4 py-8">
+
+        {/* HEADER */}
+        <div className="flex items-center gap-3 mb-8">
+          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+            <ClipboardList className="h-6 w-6 text-primary" />
           </div>
-
-          {/* Filtros */}
-          <div className="mb-6 space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <input
-                type="text"
-                placeholder="Buscar por paciente, médico, síntomas..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full sm:max-w-md px-4 py-2 border border-slate-300 rounded-lg"
-              />
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setShowFilters(!showFilters)}
-                  className="px-4 py-2 border border-slate-300 rounded-lg bg-white hover:bg-slate-100"
-                >
-                  Filtros
-                </button>
-                <button
-                  onClick={() => abrirModal()}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
-                >
-                  Nueva Visita
-                </button>
-              </div>
-            </div>
-
-            {showFilters && (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Paciente</label>
-                  <select
-                    value={filterPaciente}
-                    onChange={(e) => setFilterPaciente(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg"
-                  >
-                    <option value="all">Todos</option>
-                    {pacientes.map((p) => (
-                      <option key={p.id} value={p.id}>{p.nombre}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Médico</label>
-                  <select
-                    value={filterMedico}
-                    onChange={(e) => setFilterMedico(e.target.value)}
-                    className="w-full px-3 py-2
-                    border border-slate-300 rounded-lg"
-                  >
-                    <option value="all">Todos</option>
-                    {medicos.map((m) => (
-                      <option key={m.id} value={m.id}>{m.nombre}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Síntoma</label>
-                  <select
-                    value={filterSintoma}
-                    onChange={(e) => setFilterSintoma(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg"
-                  >
-                    <option value="all">Todos</option>
-                    {sintomas.map((s) => (
-                      <option key={s.id} value={s.id}>{s.nombre}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Fecha</label>
-                  <input
-                    type="date"
-                    value={filterFecha}
-                    onChange={(e) => setFilterFecha(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg"
-                  />
-                </div>
-              </div>
-            )}
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Registro de Visitas</h1>
+            <p className="text-muted-foreground">Gestiona las visitas médicas de los pacientes</p>
           </div>
-
-          {/* Tabla */}
-          <table className="min-w-full table-auto">
-            <thead className="bg-slate-100">
-              <tr className="text-left">
-                <th className="px-4 py-3 font-semibold text-slate-700">Fecha</th>
-                <th className="px-4 py-3 font-semibold text-slate-700">Hora</th>
-                <th className="px-4 py-3 font-semibold text-slate-700">Paciente</th>
-                <th className="px-4 py-3 font-semibold text-slate-700">Médico</th>
-                <th className="px-4 py-3 font-semibold text-slate-700">Síntomas</th>
-                <th className="px-4 py-3 font-semibold text-slate-700">Medicamentos</th>
-                <th className="px-4 py-3 font-semibold text-slate-700">Fecha de Registro</th>
-                <th className="px-4 py-3 font-semibold text-slate-700">Fecha de Actualización</th>
-                <th className="px-4 py-3 font-semibold text-slate-700">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visitasFiltradas.length === 0 ? (
-                <tr>
-                  <td colSpan="9" className="px-4 py-6 text-center text-slate-500">
-                    No hay visitas registradas
-                  </td>
-                </tr>
-              ) : (
-                visitasFiltradas.map((v) => (
-                  <tr key={v.id} className="border-t border-slate-200 hover:bg-slate-50">
-                    <td className="px-4 py-3">{formatearFecha(v.fechaVisita)}</td>
-                    <td className="px-4 py-3">{v.horaVisita}</td>
-                    <td className="px-4 py-3">{obtenerNombrePaciente(v.pacienteId)}</td>
-                    <td className="px-4 py-3">{obtenerNombreMedico(v.medicoId)}</td>
-                    <td className="px-4 py-3">{obtenerNombresSintomas(v.sintomasIds)}</td>
-                    <td className="px-4 py-3">{obtenerNombresMedicamentos(v.medicamentosIds)}</td>
-                    <td className="px-4 py-3 text-slate-600">{formatearFecha(v.fechaCreacion)}</td>
-                    <td className="px-4 py-3 text-slate-600">{formatearFecha(v.fechaActualizacion)}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => abrirModal(v)}
-                          className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded text-sm transition-colors"
-                        >
-                          Editar
-                        </button>
-                        <button
-                          onClick={() => eliminar(v.id)}
-                          className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm transition-colors"
-                        >
-                          Eliminar
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
         </div>
 
-        {/* Modal */}
-        {isModalOpen && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl w-full max-w-xl p-6 overflow-y-auto max-h-[90vh]">
-              <h3 className="text-xl font-semibold mb-4">
-                {editando ? "Editar Visita" : "Nueva Visita"}
-              </h3>
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault()
-                  guardarVisita(formData)
-                }}
-                className="space-y-4"
+          {/* SEARCH + ACTIONS */}
+        <div className="mb-6 space-y-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por paciente, médico, síntomas..."
+                className="pl-10"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="gap-2 bg-transparent"
+                onClick={() => setShowFilters(!showFilters)}
               >
+                <Filter className="h-4 w-4" />
+                Filtros
+                {activeFiltersCount > 0 && (
+                  <Badge
+                    variant="secondary"
+                    className="ml-1 h-5 w-5 rounded-full p-0 flex items-center justify-center"
+                  >
+                    {activeFiltersCount}
+                  </Badge>
+                )}
+              </Button>
+
+              <Button className="gap-2" onClick={() => abrirModal()}>
+                <Plus className="h-4 w-4" />
+                Nueva Visita
+              </Button>
+            </div>
+          </div>
+
+          {/* FILTERS */}
+          {showFilters && (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg">Filtros Avanzados</CardTitle>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setSearchTerm("")
+                      setFilterPaciente("all")
+                      setFilterMedico("all")
+                      setFilterSintoma("all")
+                      setFilterFecha("")
+                    }}
+                    className="gap-2"
+                  >
+                    <X className="h-4 w-4" />
+                    Limpiar
+                  </Button>
+                </div>
+              </CardHeader>
+
+              <CardContent>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                  {/* Paciente */}
+                  <div className="space-y-2">
+                    <Label>Paciente</Label>
+                    <Select value={filterPaciente} onValueChange={setFilterPaciente}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Todos los pacientes" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos</SelectItem>
+                        {pacientes.map((p) => (
+                          <SelectItem key={p.id} value={p.id.toString()}>
+                            {p.nombre}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Médico */}
+                  <div className="space-y-2">
+                    <Label>Médico</Label>
+                    <Select value={filterMedico} onValueChange={setFilterMedico}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Todos los médicos" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos</SelectItem>
+                        {medicos.map((m) => (
+                          <SelectItem key={m.id} value={m.id.toString()}>
+                            {m.nombre}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Síntoma */}
+                  <div className="space-y-2">
+                    <Label>Síntoma</Label>
+                    <Select value={filterSintoma} onValueChange={setFilterSintoma}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Todos los síntomas" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos</SelectItem>
+                        {sintomas.map((s) => (
+                          <SelectItem key={s.id} value={s.id.toString()}>
+                            {s.nombre}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Fecha */}
+                  <div className="space-y-2">
+                    <Label>Fecha</Label>
+                    <Input
+                      type="date"
+                      value={filterFecha}
+                      onChange={(e) => setFilterFecha(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* SIN RESULTADOS */}
+        {visitasFiltradas.length === 0 ? (
+          <Card className="p-12">
+            <div className="text-center">
+              <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No se encontraron visitas</h3>
+              <p className="text-muted-foreground mb-4">
+                Intenta ajustar los filtros o la búsqueda
+              </p>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSearchTerm("")
+                  setFilterPaciente("all")
+                  setFilterMedico("all")
+                  setFilterSintoma("all")
+                  setFilterFecha("")
+                }}
+              >
+                Limpiar filtros
+              </Button>
+            </div>
+          </Card>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {visitasFiltradas.map((v) => (
+              <Card key={v.id} className="hover:shadow-md transition-shadow">
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <CardTitle className="text-lg">
+                        {obtenerNombrePaciente(v.pacienteId)}
+                      </CardTitle>
+                      <CardDescription>{obtenerNombreMedico(v.medicoId)}</CardDescription>
+                    </div>
+                    <Badge variant="secondary">Visita</Badge>
+                  </div>
+                </CardHeader>
+
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                      <Calendar className="h-3 w-3" />
+                      <span>
+                        {formatearFecha(v.fechaVisita)} — {v.horaVisita}
+                      </span>
+                    </div>
+
+                    <div className="text-sm space-y-1">
+                      <div className="flex justify-between border-t pt-2">
+                        <span className="text-muted-foreground">Síntomas:</span>
+                        <span className="font-medium text-right">
+                          {obtenerNombresSintomas(v.sintomasIds)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Medicamentos:</span>
+                        <span className="font-medium text-right">
+                          {obtenerNombresMedicamentos(v.medicamentos) || "—"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Recomendaciones:</span>
+                        <span className="font-medium text-right">{v.recomendaciones}</span>
+                      </div>
+                      <div className="flex justify-between text-xs text-muted-foreground pt-1">
+                        <span>Creación: {formatearFecha(v.fechaCreacion)}</span>
+                        <span>Actualización: {formatearFecha(v.fechaActualizacion)}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2 pt-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 gap-2 bg-transparent"
+                        onClick={() => abrirModal(v)}
+                      >
+                        <Edit className="h-3 w-3" /> Editar
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 gap-2 text-destructive hover:text-destructive bg-transparent"
+                        onClick={() => eliminar(v.id)}
+                      >
+                        <Trash2 className="h-3 w-3" /> Eliminar
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+
+        {/* MODAL */}
+        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{editando ? "Editar Visita" : "Nueva Visita"}</DialogTitle>
+              <DialogDescription>
+                {editando
+                  ? "Modifica la información de la visita"
+                  : "Registra una nueva visita médica"}
+              </DialogDescription>
+            </DialogHeader>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault()
+                guardarVisita(formData)
+              }}
+            >
+              <div className="grid gap-4 py-4">
+                {/* Fecha y Hora */}
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Fecha</label>
-                    <input
+                  <div className="grid gap-2">
+                    <Label>Fecha</Label>
+                    <Input
                       type="date"
                       value={formData.fechaVisita}
-                      onChange={(e) => setFormData({ ...formData, fechaVisita: e.target.value })}
-                      max={new Date().toISOString().split("T")[0]} // bloqueo fechas
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+                      onChange={(e) =>
+                        setFormData({ ...formData, fechaVisita: e.target.value })
+                      }
+                      max={new Date().toISOString().split("T")[0]}
                       required
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Hora</label>
-                    <input
+
+                  <div className="grid gap-2">
+                    <Label>Hora</Label>
+                    <Input
                       type="time"
                       value={formData.horaVisita}
-                      onChange={(e) => setFormData({ ...formData, horaVisita: e.target.value })}
-                      max={horaMaxima} // bloquea horas futuras (solo si la fecha es hoy)
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+                      onChange={(e) =>
+                        setFormData({ ...formData, horaVisita: e.target.value })
+                      }
+                      max={horaMaxima}
                       required
                     />
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Recomendaciones</label>
-                  <textarea
+                {/* Recomendaciones */}
+                <div className="grid gap-2">
+                  <Label>Recomendaciones</Label>
+                  <Textarea
                     value={formData.recomendaciones}
-                    onChange={(e) => setFormData({ ...formData, recomendaciones: e.target.value })}
-                    rows="3"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+                    onChange={(e) =>
+                      setFormData({ ...formData, recomendaciones: e.target.value })
+                    }
                     placeholder="Recomendaciones médicas"
+                    rows={3}
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Paciente</label>
-                  <select
+                {/* Paciente */}
+                <div className="grid gap-2">
+                  <Label>Paciente</Label>
+                  <Select
                     value={formData.pacienteId}
-                    onChange={(e) => setFormData({ ...formData, pacienteId: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg"
-                    required
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, pacienteId: value })
+                    }
                   >
-                    <option value="">Selecciona paciente</option>
-                    {pacientes.map((p) => (
-                      <option key={p.id} value={p.id}>{p.nombre}</option>
-                    ))}
-                  </select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar paciente" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {pacientes.map((p) => (
+                        <SelectItem key={p.id} value={p.id.toString()}>
+                          {p.nombre}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Médico</label>
-                  <select
+                {/* Médico */}
+                <div className="grid gap-2">
+                  <Label>Médico</Label>
+                  <Select
                     value={formData.medicoId}
-                    onChange={(e) => setFormData({ ...formData, medicoId: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg"
-                    required
-                  >
-                    <option value="">Selecciona médico</option>
-                    {medicos.map((m) => (
-                      <option key={m.id} value={m.id}>{m.nombre}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Síntomas</label>
-                  <select
-                    multiple
-                    value={formData.sintomasIds}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        sintomasIds: Array.from(e.target.selectedOptions, (opt) => opt.value),
-                      })
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, medicoId: value })
                     }
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg"
                   >
-                    {sintomas.map((s) => (
-                      <option key={s.id} value={s.id}>{s.nombre}</option>
-                    ))}
-                  </select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar médico" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {medicos.map((m) => (
+                        <SelectItem key={m.id} value={m.id.toString()}>
+                          {m.nombre}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Medicamentos</label>
-                  <select
-                    multiple
-                    value={formData.medicamentosIds}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        medicamentosIds: Array.from(e.target.selectedOptions, (opt) => opt.value),
-                      })
-                    }
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg"
-                  >
-                    {medicamentos.map((m) => (
-                      <option key={m.id} value={m.id}>{m.descripcion}</option>
-                    ))}
-                  </select>
-                </div>
+                {/* Síntomas */}
+                  <div className="grid gap-2">
+                    <Label>Síntomas</Label>
+                    <Input
+                      placeholder="Buscar síntoma..."
+                      value={searchSintoma}
+                      onChange={(e) => setSearchSintoma(e.target.value)}
+                    />
 
-                <div className="flex gap-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={cerrarModal}
-                    className="flex-1 px-4 py-2 bg-slate-500 hover:bg-slate-600 text-white rounded-lg transition-colors"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-                  >
-                    {editando ? "Actualizar" : "Guardar"}
-                  </button>
+                    <div className="max-h-40 overflow-y-auto border rounded-md p-2 space-y-1">
+                      {sintomas
+                        .filter((s) =>
+                          s.nombre.toLowerCase().includes(searchSintoma.toLowerCase())
+                        )
+                        .map((s) => (
+                          <label
+                            key={s.id}
+                            className="flex items-center gap-2 text-sm cursor-pointer"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={formData.sintomasIds.includes(s.id)}
+                              onChange={() => {
+                                if (formData.sintomasIds.includes(s.id)) {
+                                  setFormData({
+                                    ...formData,
+                                    sintomasIds: formData.sintomasIds.filter((x) => x !== s.id),
+                                  });
+                                } else {
+                                  setFormData({
+                                    ...formData,
+                                    sintomasIds: [...formData.sintomasIds, s.id],
+                                  });
+                                }
+                              }}
+                            />
+                            {s.nombre}
+                          </label>
+                        ))}
+
+                      {sintomas.filter((s) =>
+                        s.nombre.toLowerCase().includes(searchSintoma.toLowerCase())
+                      ).length === 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          No se encontraron síntomas
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                {/* Medicamentos */}
+                <div className="grid gap-2">
+                  <Label>Medicamentos</Label>
+                  <div className="space-y-2">
+                    {formData.medicamentos.map((item, index) => {
+                      const med = medicamentos.find(
+                        (m) => m.id === item.medicamentoId
+                      )
+                      return (
+                        <div
+                          key={item.medicamentoId}
+                          className="flex items-center justify-between border px-3 py-2 rounded-lg"
+                        >
+                          <div>
+                            <p className="font-medium">
+                              {med?.descripcion || "Medicamento"}
+                            </p>
+                            <p className="text-xs text-slate-500">
+                              Stock: {med?.cantidadDisponible ?? "—"}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              type="number"
+                              min="1"
+                              max={!editando ? med?.cantidadDisponible : undefined}
+                              value={item.cantidadSuministrada}
+                              onChange={(e) => {
+                                const nuevaCantidad = Number(e.target.value)
+                                if (!med) return
+                                if (!editando && nuevaCantidad > med.cantidadDisponible) {
+                                  alert(`Stock insuficiente. Solo hay ${med.cantidadDisponible} unidades disponibles.`)
+                                  return
+                                }
+                                if (nuevaCantidad < 1) return
+                                setFormData({
+                                  ...formData,
+                                  medicamentos: formData.medicamentos.map((m, i) =>
+                                    i === index ? { ...m, cantidadSuministrada: nuevaCantidad } : m
+                                  ),
+                                })
+                              }}
+                              className="w-20"
+                            />
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="sm"
+                              onClick={() =>
+                                setFormData({
+                                  ...formData,
+                                  medicamentos: formData.medicamentos.filter(
+                                    (m) => m.medicamentoId !== item.medicamentoId
+                                  ),
+                                })
+                              }
+                            >
+                              X
+                            </Button>
+                          </div>
+                        </div>
+                      )
+                    })}
+
+                    <Select
+                      onValueChange={(value) => {
+                        const id = Number(value)
+                        if (!id) return
+                        const med = medicamentos.find((m) => m.id === id)
+                        if (!med) return
+                        if (!editando && med.cantidadDisponible <= 0) {
+                          alert(`El medicamento "${med.descripcion}" no tiene stock disponible.`)
+                          return
+                        }
+                        if (
+                          formData.medicamentos.some(
+                            (m) => m.medicamentoId === id
+                          )
+                        ) {
+                          alert("Este medicamento ya fue añadido.")
+                          return
+                        }
+                        setFormData({
+                          ...formData,
+                          medicamentos: [
+                            ...formData.medicamentos,
+                            { medicamentoId: id, cantidadSuministrada: 1 },
+                          ],
+                        })
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Agregar medicamento..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {medicamentos.map((m) => (
+                          <SelectItem key={m.id} value={m.id.toString()}>
+                            {m.descripcion} (Stock: {m.cantidadDisponible})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-              </form>
-            </div>
-          </div>
-        )}
+              </div>
+
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={cerrarModal}>
+                  Cancelar
+                </Button>
+                <Button type="submit">
+                  {editando ? "Actualizar" : "Guardar"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
     </Layout>
   )
